@@ -47,8 +47,8 @@ ddas = []
 frequencies = [9.6,13.6,35.6,94]
 for freq in frequencies:
 	Nlayers = 2 # Number of layers (to be consistent across the computations)
-	Ncomput = 10 # Number of computations / (x,m) pairs
-	part_size = 0.0005 # meters == 0.5 millimeter radius
+	Ncomput = 100 # Number of computations / (x,m) pairs
+	part_size = 0.002 # meters == 2 millimeter radius
 
 	mi = complex(ice.loc[freq,'Re(N)'],ice.loc[freq,'Im(N)'])
 	mw = complex(wat.loc[freq,'Re(N)'],wat.loc[freq,'Im(N)'])
@@ -85,9 +85,10 @@ for freq in frequencies:
 		resj[2][i] = mie.qsca()
 		resj[3][i] = mie.qabs()
 		resj[4][i] = mie.qb()
+
 		d_ratio = rad_ratio[i]
 		savedir = 'dda/'+str(freq)+'_'+str(i)
-		cmd_init = ['mpirun','-np','4','/home/dori/adda_1.3b4/src/mpi/adda_mpi']
+		cmd_init = ['mpirun','-np','8','/home/dori/adda_1.3b4/src/mpi/adda_mpi']
 		size_par = ['-grid',str(Ngrid),'-lambda',str(wl),'-dpl',str(dpl)]
 		shape_par = ['-shape','coated',str(d_ratio)]
 		refr_par = ['-m',str(mw.real),str(mw.imag),str(mi.real),str(mi.imag)]
@@ -96,6 +97,9 @@ for freq in frequencies:
 		command = cmd_init + size_par + shape_par + refr_par + comp_opt + other_par
 		subprocess.call(command)
 		mueller = pd.read_csv(savedir+'/mueller',sep=' ')
+		mueller.set_index('theta',inplace=True)
+		back = mueller.loc[180]
+		Cbk = 2.0*np.pi*(back.s11+back.s22+2.0*back.s12)/k2
 		logf = open(savedir+'/log','r')
 		csf = open(savedir+'/CrossSec-Y','r')
 		CSlines = csf.readlines()
@@ -104,6 +108,7 @@ for freq in frequencies:
 		area = ce/dda[1][i]
 		dda[3][i] = float(CSlines[3].split()[-1])
 		dda[2][i] = dda[1][i] - dda[3][i]
+		dda[4][i] = Cbk/area
 
 	ax.plot(rad_ratio,resj[1],'+',label=str(freq)+' j')
 	ax.plot(rad_ratio,dda[1],'*',label=str(freq)+' d')
@@ -113,20 +118,72 @@ for freq in frequencies:
 ax.legend()
 ax.grid()
 #ax.set_ylim([0,1])
-plt.show()
+#plt.show()
 #plt.close()
+
+colors=[u'#1f77b4', u'#ff7f0e', u'#2ca02c', u'#d62728', u'#9467bd', u'#8c564b', u'#e377c2', u'#7f7f7f', u'#bcbd22', u'#17becf']
+plt.figure()
+ax1 = plt.gca()
+for f in range(len(frequencies)):
+	ax1.plot(rad_ratio,spheres[f][1],'-',color=colors[f],label=str(frequencies[f])+'nly')
+	ax1.plot(rad_ratio,spherej[f][1],'.',color=colors[f],label=str(frequencies[f])+'coa')
+	ax1.plot(rad_ratio,   ddas[f][1],'*',color=colors[f],label=str(frequencies[f])+'dda')
+ax1.grid()
+ax1.legend()
+ax1.set_xlabel('inner diam / outer diam')
+ax1.set_ylabel('Q$_e$ Extinction efficiency')
+plt.title('Particle 4 mm size coated')
+plt.show()
 
 plt.figure()
 ax1 = plt.gca()
 for f in range(len(frequencies)):
-	ax1.plot(rad_ratio,spheres[f][1],label=str(frequencies[f])+'nly')
-	ax1.plot(rad_ratio,spherej[f][1],label=str(frequencies[f])+'coa')
-	ax1.plot(rad_ratio,   ddas[f][1],label=str(frequencies[f])+'dda')
+	ax1.plot(rad_ratio,spheres[f][2],'-',color=colors[f],label=str(frequencies[f])+'nly')
+	ax1.plot(rad_ratio,spherej[f][2],'.',color=colors[f],label=str(frequencies[f])+'coa')
+	ax1.plot(rad_ratio,   ddas[f][2],'*',color=colors[f],label=str(frequencies[f])+'dda')
+ax1.grid()
+ax1.legend()
+ax1.set_xlabel('inner diam / outer diam')
+ax1.set_ylabel('Q$_s$ Scattering efficiency')
+plt.title('Particle 4 mm size coated')
+plt.show()
+
+plt.figure()
+ax1 = plt.gca()
+for f in range(len(frequencies)):
+	ax1.plot(rad_ratio,spheres[f][1],'-',color=colors[f],label=str(frequencies[f])+'nly')
+	ax1.plot(rad_ratio,spherej[f][1],'.',color=colors[f],label=str(frequencies[f])+'coa')
+	ax1.plot(rad_ratio,   ddas[f][1],'*',color=colors[f],label=str(frequencies[f])+'dda')
+ax1.grid()
+ax1.legend()
+ax1.set_xlabel('inner diam / outer diam')
+ax1.set_ylabel('Q$_a$ Absorption efficiency')
+plt.title('Particle 4 mm size coated')
+plt.show()
+
+plt.figure()
+ax1 = plt.gca()
+for f in range(len(frequencies)):
+	ax1.plot(rad_ratio,spheres[f][1],'-',color=colors[f],label=str(frequencies[f])+'nly')
+	ax1.plot(rad_ratio,spherej[f][1],'.',color=colors[f],label=str(frequencies[f])+'coa')
+	ax1.plot(rad_ratio,   ddas[f][1],'*',color=colors[f],label=str(frequencies[f])+'dda')
+ax1.grid()
+ax1.legend()
+ax1.set_xlabel('inner diam / outer diam')
+ax1.set_ylabel('Q$_b$ Backscattering efficiency')
+plt.title('Particle 4 mm size coated')
 plt.show()
 	
+import pickle
+with open('nlay', 'wb') as lp:
+    pickle.dump(spheres, lp)
+with open('coat', 'wb') as cp:
+    pickle.dump(spherej, cp)
+with open('ddas', 'wb') as dp:
+    pickle.dump(ddas, dp)
 
-
-
+with open ('nlay', 'rb') as lp:
+    itemlist = pickle.load(lp)
 
 #S1 = results[8][0]
 #S2 = results[9][0]
