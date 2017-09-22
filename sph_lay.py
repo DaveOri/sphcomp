@@ -44,7 +44,9 @@ fr2lam = lambda f: c*1.e-6/f
 
 plt.figure()
 ax = plt.gca()
-for freq in [9.6,13.6,35.6,94]:
+spheres = []
+frequencies = [9.6,13.6,35.6,94]
+for freq in frequencies:
 	Nlayers = 2 # Number of layers (to be consistent across the computations)
 	Ncomput = 10 # Number of computations / (x,m) pairs
 	part_size = 0.001 # meters
@@ -66,6 +68,7 @@ for freq in [9.6,13.6,35.6,94]:
 
 	print(freq,m[0,0],m[0,1])
 	results = scattnlay(x,m)
+	spheres = spheres + [results]
 
 	ax.plot(rad_ratio,results[2],'-+',label=freq)
 	resj = results
@@ -82,15 +85,21 @@ for freq in [9.6,13.6,35.6,94]:
 #		resj[3][i] = mie.qabs()
 #		resj[4][i] = mie.qb()
 		d_ratio = rad_ratio[i]
-		command = ['mpirun','-np','4','/home/dori/adda_1.3b4/src/mpi/adda_mpi','-grid',str(Ngrid),'-lambda',str(wl),'-dpl',str(dpl),'-shape','coated',str(d_ratio),'-save_geom','-m',str(mw.real),str(mw.imag),str(mi.real),str(mi.imag)]
-		#subprocess.call(command)
+		cmd_init = ['mpirun','-np','4','/home/dori/adda_1.3b4/src/mpi/adda_mpi']
+		size_par = ['-grid',str(Ngrid),'-lambda',str(wl),'-dpl',str(dpl)]
+		shape_par = ['-shape','coated',str(d_ratio)]
+		refr_par = ['-m',str(mw.real),str(mw.imag),str(mi.real),str(mi.imag)]
+		comp_opt = ['-pol','fcd','-int','fcd','-iter','qmr2']
+		other_par = ['-save_geom','-store_int_field','-dir','dda/'+str(freq)+'_'+str(i)] # option - asym requires averaging, maybe it is better if I calculate myself
+		command = cmd_init + size_par + shape_par + refr_par + comp_opt + other_par
+		subprocess.call(command)
 #	ax.plot(rad_ratio,resj[2],'-+',label=str(freq)+' j')
 
 ax.legend()
 ax.grid()
 #ax.set_ylim([0,1])
-plt.show()
-plt.close()
+#plt.show()
+#plt.close()
 
 
 
