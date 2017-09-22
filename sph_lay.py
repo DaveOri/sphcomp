@@ -3,6 +3,8 @@ import sys
 import matplotlib.pyplot as plt
 import pandas as pd
 import subprocess
+from copy import deepcopy
+import pandas as pd
 
 c = 299792458000000. # micron/s
 refld = '/work/DBs/melted_aggregate_scaled_reff_Ku_Ka_W_89_165_183/melt3a_aggregate2_010_20091210_222748_halfscale_f000001_AEFF_1000_ROT535_13.4/'
@@ -29,15 +31,10 @@ wat.loc[35.6] = np.nan
 wat.loc[94.0] = np.nan
 wat = wat.sort_index().interpolate('cubic')
 
-#print(ice, wat)
-
 sys.path.append('/work/DBs/scattnlay')
 sys.path.append('/home/dori/pymiecoated')
 from scattnlay import scattnlay
 from pymiecoated import Mie
-
-mie = Mie(x=1.5,m=complex(3.0,0.5))
-print(mie.qsca())
 
 size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-6/f
@@ -45,11 +42,13 @@ fr2lam = lambda f: c*1.e-6/f
 plt.figure()
 ax = plt.gca()
 spheres = []
+spherej = []
+ddas = []
 frequencies = [9.6,13.6,35.6,94]
 for freq in frequencies:
 	Nlayers = 2 # Number of layers (to be consistent across the computations)
 	Ncomput = 10 # Number of computations / (x,m) pairs
-	part_size = 0.001 # meters
+	part_size = 0.0005 # meters == 0.5 millimeter radius
 
 	mi = complex(ice.loc[freq,'Re(N)'],ice.loc[freq,'Im(N)'])
 	mw = complex(wat.loc[freq,'Re(N)'],wat.loc[freq,'Im(N)'])
@@ -70,36 +69,61 @@ for freq in frequencies:
 	results = scattnlay(x,m)
 	spheres = spheres + [results]
 
-	ax.plot(rad_ratio,results[2],'-+',label=freq)
-	resj = results
+	ax.plot(rad_ratio,results[1],label=freq)
+	resj = deepcopy(results)
+	dda = deepcopy(resj)
 
 	dip_spa = 20.e-6 # 20 microns
 	wl = fr2lam(freq*1e9)
+	k2 = 4.*np.pi*np.pi/wl**2
 	dpl = wl/dip_spa
-	Ngrid = part_size/dip_spa
+	Ngrid = 2.0*part_size/dip_spa
 
 	for i in range(len(xl)):
-#		mie = Mie(x=xl[i],m=mi,y=part_x,m2=mw)
-#		resj[1][i] = mie.qext()
-#		resj[2][i] = mie.qsca()
-#		resj[3][i] = mie.qabs()
-#		resj[4][i] = mie.qb()
+		mie = Mie(x=xl[i],m=mi,y=part_x,m2=mw)
+		resj[1][i] = mie.qext()
+		resj[2][i] = mie.qsca()
+		resj[3][i] = mie.qabs()
+		resj[4][i] = mie.qb()
 		d_ratio = rad_ratio[i]
+		savedir = 'dda/'+str(freq)+'_'+str(i)
 		cmd_init = ['mpirun','-np','4','/home/dori/adda_1.3b4/src/mpi/adda_mpi']
 		size_par = ['-grid',str(Ngrid),'-lambda',str(wl),'-dpl',str(dpl)]
 		shape_par = ['-shape','coated',str(d_ratio)]
 		refr_par = ['-m',str(mw.real),str(mw.imag),str(mi.real),str(mi.imag)]
 		comp_opt = ['-pol','fcd','-int','fcd','-iter','qmr2']
-		other_par = ['-save_geom','-store_int_field','-dir','dda/'+str(freq)+'_'+str(i)] # option - asym requires averaging, maybe it is better if I calculate myself
+		other_par = ['-save_geom','-store_int_field','-dir',savedir] # option - asym requires averaging, maybe it is better if I calculate myself
 		command = cmd_init + size_par + shape_par + refr_par + comp_opt + other_par
 		subprocess.call(command)
-#	ax.plot(rad_ratio,resj[2],'-+',label=str(freq)+' j')
+		mueller = pd.read_csv(savedir+'/mueller',sep=' ')
+		logf = open(savedir+'/log','r')
+		csf = open(savedir+'/CrossSec-Y','r')
+		CSlines = csf.readlines()
+		dda[1][i] = float(CSlines[1].split()[-1])
+		ce = float(CSlines[1].split()[-1])
+		area = ce/dda[1][i]
+		dda[3][i] = float(CSlines[3].split()[-1])
+		dda[2][i] = dda[1][i] - dda[3][i]
+
+	ax.plot(rad_ratio,resj[1],'+',label=str(freq)+' j')
+	ax.plot(rad_ratio,dda[1],'*',label=str(freq)+' d')
+	spherej = spherej + [resj]
+	ddas = ddas + [dda]
 
 ax.legend()
 ax.grid()
 #ax.set_ylim([0,1])
-#plt.show()
+plt.show()
 #plt.close()
+
+plt.figure()
+ax1 = plt.gca()
+for f in range(len(frequencies)):
+	ax1.plot(rad_ratio,spheres[f][1],label=str(frequencies[f])+'nly')
+	ax1.plot(rad_ratio,spherej[f][1],label=str(frequencies[f])+'coa')
+	ax1.plot(rad_ratio,   ddas[f][1],label=str(frequencies[f])+'dda')
+plt.show()
+	
 
 
 
