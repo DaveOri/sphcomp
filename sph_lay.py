@@ -2,6 +2,7 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import pandas as pd
+import subprocess
 
 c = 299792458000000. # micron/s
 refld = '/work/DBs/melted_aggregate_scaled_reff_Ku_Ka_W_89_165_183/melt3a_aggregate2_010_20091210_222748_halfscale_f000001_AEFF_1000_ROT535_13.4/'
@@ -45,8 +46,8 @@ plt.figure()
 ax = plt.gca()
 for freq in [9.6,13.6,35.6,94]:
 	Nlayers = 2 # Number of layers (to be consistent across the computations)
-	Ncomput = 1000 # Number of computations / (x,m) pairs
-	part_size = 0.005 # meters
+	Ncomput = 10 # Number of computations / (x,m) pairs
+	part_size = 0.001 # meters
 
 	mi = complex(ice.loc[freq,'Re(N)'],ice.loc[freq,'Im(N)'])
 	mw = complex(wat.loc[freq,'Re(N)'],wat.loc[freq,'Im(N)'])
@@ -66,21 +67,30 @@ for freq in [9.6,13.6,35.6,94]:
 	print(freq,m[0,0],m[0,1])
 	results = scattnlay(x,m)
 
-	ax.plot(rad_ratio,results[2],label=freq)
-#	resj = results
-#	for i in range(len(xl)):
+	ax.plot(rad_ratio,results[2],'-+',label=freq)
+	resj = results
+
+	dip_spa = 20.e-6 # 20 microns
+	wl = fr2lam(freq*1e9)
+	dpl = wl/dip_spa
+	Ngrid = part_size/dip_spa
+
+	for i in range(len(xl)):
 #		mie = Mie(x=xl[i],m=mi,y=part_x,m2=mw)
 #		resj[1][i] = mie.qext()
 #		resj[2][i] = mie.qsca()
 #		resj[3][i] = mie.qabs()
 #		resj[4][i] = mie.qb()
+		d_ratio = rad_ratio[i]
+		command = ['mpirun','-np','4','/home/dori/adda_1.3b4/src/mpi/adda_mpi','-grid',str(Ngrid),'-lambda',str(wl),'-dpl',str(dpl),'-shape','coated',str(d_ratio),'-save_geom','-m',str(mw.real),str(mw.imag),str(mi.real),str(mi.imag)]
+		#subprocess.call(command)
 #	ax.plot(rad_ratio,resj[2],'-+',label=str(freq)+' j')
 
 ax.legend()
 ax.grid()
 #ax.set_ylim([0,1])
 plt.show()
-
+plt.close()
 
 
 
