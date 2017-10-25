@@ -9,7 +9,7 @@ from glob import glob
 
 sys.path.append('/work/DBs/scattnlay')
 sys.path.append('/home/dori/pymiecoated')
-#from scattnlay import scattnlay
+from scattnlay import scattnlay
 #from pymiecoated import Mie
 
 c = 299792458. # m/s
@@ -17,16 +17,17 @@ size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
 freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94}
-part_size = '4'
+part_size = '10'
 
 def get_line(lines,string):
     return [x for x in lines if string in x][0]
 
 data_folder = './'+str(part_size)+'mm'
-for freq_str in freqs.keys()[0]:
+for freq_str in freqs.keys():
     f = freqs[freq_str]
     lam = fr2lam(f)
-    #print(f,lam)
+    k2 = 4.*(np.pi/lam)**2
+    print(f,lam)
     particles_folders = glob(data_folder+'/'+freq_str+'/*')
     for particle_folder in particles_folders:
         #print(particle_folder)
@@ -53,12 +54,36 @@ for freq_str in freqs.keys()[0]:
         CrossSecfile = open(particle_folder+'/CrossSec-Y','r')
         lines = CrossSecfile.readlines()
         Cext = float(get_line(lines,'Cext').split()[-1])
+        Qext = float(get_line(lines,'Qext').split()[-1])
+        area = Cext/Qext
         Cabs = float(get_line(lines,'Cabs').split()[-1])
+        Qabs = float(get_line(lines,'Qabs').split()[-1])
         Csca = Cext - Cabs
+        Qsca = Csca/area
+
+        back = mueller.loc[180]
+        Cbk = 2.0*np.pi*(back.s11+back.s22+2.0*back.s12)/k2
+        Qbk = Cbk/area
         #print(Csca, Cabs, Cext)
         volume_ratio = float(N1)/float(Ndipoles)
-        print(volume_ratio, Csca, Cabs, Cext)
+        #print(volume_ratio, Qsca, Qabs, Qext, Qbk)
 
+        Ncomput = 1
+        Nlayers = 2
+        x = np.ndarray((Ncomput,Nlayers),dtype=np.float64)
+        m = np.ndarray((Ncomput,Nlayers),dtype=np.complex128)
+        #betas = np.linspace(0,2*np.pi,360) # compute S at this scattering angles, NOW [radians]
+        outer_size = dda_d*np.cbrt((6.0*Ndipoles/np.pi))*0.5 
+        outer_x = size2x(outer_size,lam)
+        inner_size = dda_d*np.cbrt((6.0*N2/np.pi))*0.5
+    	inner_x = size2x(inner_size,lam)
+        #print(inner_size,outer_size)
+        x[:,0] = inner_x
+        x[:,1] = outer_x
+        m[:,0] = n2
+        m[:,1] = n1
+    	results = scattnlay(x,m)
 
+        print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,results[1][0]/Qext,results[2][0]/Qsca,results[3][0]/Qabs,results[4][0]/Qbk)
                 
 
