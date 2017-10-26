@@ -2,9 +2,8 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import pandas as pd
-import subprocess
-from copy import deepcopy
-import pandas as pd
+#import subprocess
+#from copy import deepcopy
 from glob import glob
 
 sys.path.append('/work/DBs/scattnlay')
@@ -48,6 +47,26 @@ def get_cross_sections(CrossSecFileName):
     Qsca = Csca/area                
     return Cext, Qext, Csca, Qsca, Cabs, Qabs, area
 
+def Ampl2Mueller(S1,S2):
+    P11 = 0.5*(S1*S1.conj()+S2*S2.conj()).real
+    P22 = 0.5*(S2*S2.conj()-S1*S1.conj()).real
+    P33 = 0.5*(S1*S2.conj()+S2*S1.conj()).real
+    P34 = (complex(0.5,0.5)*(S1*S2.conj()-S2*S1.conj())).real
+    return P11, P22, P33, P34
+
+def plotMueller(angles,data,tags,title,figname):
+    plt.figure()
+    ax = plt.gca()
+    for x,y,tag in zip(angles,data,tags):
+        ax.plot(x,y,label=tag)
+    ax.legend()
+    ax.grid()
+    ax.set_title(title)
+    ax.set_xlabel('Scattering angle')
+    ax.set_ylabel(title)
+    ax.legend()
+    plt.savefig(figname)
+
 data_folder = './'+str(part_size)+'mm'
 for freq_str in freqs.keys():
     f = freqs[freq_str]
@@ -60,8 +79,9 @@ for freq_str in freqs.keys():
     plt.plot()
     ax = plt.gca()
 
-    particles_folders = particles_folders[0:1]
+    particles_folders = particles_folders[0:5]
     for particle_folder,i in zip(particles_folders,range(len(particles_folders))):
+        print(particle_folder)
         dipoles = pd.read_csv(particle_folder+'/coated.geom',sep=' ',header=4,names=['X','Y','Z','M'])
         mueller = pd.read_csv(particle_folder+'/mueller',sep=' ',index_col='theta')
         intField = pd.read_csv(particle_folder+'/IntField-Y',sep=' ')
@@ -91,18 +111,21 @@ for freq_str in freqs.keys():
         x[:,1] = outer_x
         m[:,0] = n2
         m[:,1] = n1
-    	results = scattnlay(x,m)
-        DDA.loc[i,'Dratio'] = inner_size/outer_size
-        DDA.loc[i,'Qext']   = Qext
-        DDA.loc[i,'Qsca']   = Qsca
-        DDA.loc[i,'Qabs']   = Qabs
-        DDA.loc[i,'Qbck']   = Qbck
-        MIE.loc[i,'Dratio'] = inner_size/outer_size
-        MIE.loc[i,'Qext']   = results[1][0]
-        MIE.loc[i,'Qsca']   = results[2][0]
-        MIE.loc[i,'Qabs']   = results[3][0]
-        MIE.loc[i,'Qbck']   = results[4][0]
+        thetas = np.pi*mueller.index.values/180.0
+    	results = scattnlay(x,m,theta=thetas)
+        DDA.loc[i] = inner_size/outer_size, Qext, Qsca, Qabs, Qbck
+        MIE.loc[i] = inner_size/outer_size, results[1][0], results[2][0], results[3][0], results[4][0]
+        S1 = results[8][0]
+        S2 = results[9][0]
+        P11, P12, P33, P34 = Ampl2Mueller(S1,S2)
+        plotMueller(angles=[mueller.index.values,180.*thetas/np.pi],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
+        plotMueller(angles=[mueller.index.values,180.*thetas/np.pi],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
+        plotMueller(angles=[mueller.index.values,180.*thetas/np.pi],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
+        plotMueller(angles=[mueller.index.values,180.*thetas/np.pi],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
         print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,results[1][0]/Qext,results[2][0]/Qsca,results[3][0]/Qabs,results[4][0]/Qbck)
+        #print(results)
+        print(len(results))
+
     DDA.sort('Dratio',inplace=True)
     MIE.sort('Dratio',inplace=True)
     ax.plot(MIE.Dratio,MIE.Qabs)
