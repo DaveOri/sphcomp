@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from glob import glob
 from scipy import integrate
+#from matplotlib.mlab import griddata
 
-sys.path.append('/work/DBs/scattnlay')
-sys.path.append('/home/dori/pymiecoated')
-from scattnlay import scattnlay
+#sys.path.append('/work/DBs/scattnlay')
+#from scattnlay import scattnlay
+#sys.path.append('/home/dori/pymiecoated')
 #from pymiecoated import Mie
 
 c = 299792458. # m/s
@@ -15,7 +16,7 @@ size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
 freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94}
-part_size = '4'
+part_size = '10'
 
 def get_line(lines,string):
     return [x for x in lines if string in x][0]
@@ -73,6 +74,65 @@ deg2rad = lambda angles: np.pi*angles/180.0
 rad2deg = lambda angles: 180.0*angles/np.pi
 moment  = lambda  x,y,k: integrate.trapz(y*x**k,x)
 
+def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
+    intFieldX = field[field.x == min(abs(field.x))]
+    intFieldY = field[field.y == min(abs(field.y))]
+    intFieldZ = field[field.z == min(abs(field.z))]
+    X = sorted(intFieldY.x.drop_duplicates())
+    Y = sorted(intFieldZ.y.drop_duplicates())
+    Z = sorted(intFieldX.z.drop_duplicates())
+    
+    circle1 = plt.Circle((0, 0), radius, color='k', fill=False)
+    circle2 = plt.Circle((0, 0), radius, color='k', fill=False)
+    circle3 = plt.Circle((0, 0), radius, color='k', fill=False)
+    
+    yi = intFieldX.y.apply(Y.index)
+    zi = intFieldX.z.apply(Z.index)
+    xv, yv = np.meshgrid(Y, Z)
+    zv = np.nan*xv
+    zv[yi,zi] = intFieldX[what]
+    plt.figure(figsize=(8,8),dpi=300)
+    plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
+    plt.xlabel('Y')
+    plt.ylabel('Z')
+    plt.colorbar()
+    plt.gca().add_artist(circle1)
+    plt.gca().set_aspect(1.0)
+    plt.tight_layout()
+    plt.savefig(savepath+'X'+name+'.png')
+    
+    xi = intFieldY.x.apply(X.index)
+    zi = intFieldY.z.apply(Z.index)
+    xv, yv = np.meshgrid(X, Z)
+    zv = np.nan*xv
+    zv[xi,zi] = intFieldY[what]
+    plt.figure(figsize=(8,8),dpi=300)
+    plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
+    plt.xlabel('X')
+    plt.ylabel('Z')
+    plt.colorbar()
+    plt.gca().add_artist(circle2)
+    plt.gca().set_aspect(1.0)
+    plt.tight_layout()
+    plt.savefig(savepath+'Y'+name+'.png')
+    
+    xi = intFieldZ.x.apply(X.index)
+    yi = intFieldZ.y.apply(Y.index)
+    xv, yv = np.meshgrid(X, Y)
+    zv = np.nan*xv
+    zv[xi,yi] = intFieldZ[what]
+    plt.figure(figsize=(8,8),dpi=300)
+    plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.colorbar()
+    plt.gca().add_artist(circle3)
+    plt.gca().set_aspect(1.0)
+    plt.tight_layout()
+    plt.savefig(savepath+'Z'+name+'.png')
+    plt.close('all')
+    
+
 data_folder = './'+str(part_size)+'mm'
 for freq_str in freqs.keys():
     f = freqs[freq_str]
@@ -85,13 +145,11 @@ for freq_str in freqs.keys():
     plt.plot()
     ax = plt.gca()
 
-    particles_folders = particles_folders[0:5]
+#    particles_folders = particles_folders[0:5]
     for particle_folder,i in zip(particles_folders,range(len(particles_folders))):
         print(particle_folder)
         dipoles = pd.read_csv(particle_folder+'/coated.geom',sep=' ',header=4,names=['X','Y','Z','M'])
         mueller = pd.read_csv(particle_folder+'/mueller',sep=' ',index_col='theta')
-#        intField = pd.read_csv(particle_folder+'/IntField-Y',sep=' ')
-#        print(intField.iloc[0])
 
         logfilename = particle_folder+'/log'
         lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2 = get_log_numbers(logfilename)
@@ -108,34 +166,47 @@ for freq_str in freqs.keys():
         Nlayers = 2
         x = np.ndarray((Ncomput,Nlayers),dtype=np.float64)
         m = np.ndarray((Ncomput,Nlayers),dtype=np.complex128)
-        #betas = np.linspace(0,2*np.pi,360) # compute S at this scattering angles, NOW [radians]
+        
         outer_size = dda_d*np.cbrt((6.0*Ndipoles/np.pi))*0.5 
         outer_x = size2x(outer_size,lam)
         inner_size = dda_d*np.cbrt((6.0*N2/np.pi))*0.5
-    	inner_x = size2x(inner_size,lam)
+        inner_x = size2x(inner_size,lam)
         x[:,0] = inner_x
         x[:,1] = outer_x
         m[:,0] = n2
         m[:,1] = n1
         thetas = deg2rad(mueller.index.values)
-    	results = scattnlay(x,m,theta=thetas)
         g = moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,1)/moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,0)
         DDA.loc[i] = inner_size/outer_size, Qext, Qsca, Qabs, Qbck, g, Qsca/Qext
-        MIE.loc[i] = inner_size/outer_size, results[1][0], results[2][0], results[3][0], results[4][0], results[6][0], results[7][0]
-        S1 = results[8][0]
-        S2 = results[9][0]
-        P11, P12, P33, P34 = Ampl2Mueller(S1,S2)
-        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
-        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
-        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
-        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
-        print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,results[1][0]/Qext,results[2][0]/Qsca,results[3][0]/Qabs,results[4][0]/Qbck,g/results[6][0])
+        
+        #results = scattnlay(x,m,theta=thetas)
+        #MIE.loc[i] = inner_size/outer_size, results[1][0], results[2][0], results[3][0], results[4][0], results[6][0], results[7][0]
+        #S1 = results[8][0]
+        #S2 = results[9][0]
+        #P11, P12, P33, P34 = Ampl2Mueller(S1,S2)
+        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
+        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
+        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
+        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
+        #print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,results[1][0]/Qext,results[2][0]/Qsca,results[3][0]/Qabs,results[4][0]/Qbck,g/results[6][0])
         #print(results)
-        print(len(results))
+        #print(len(results))
+        
+        try:
+            intField = pd.read_csv(particle_folder+'/IntField-Y',sep=' ')
+            plot_field(intField,savepath=particle_folder+'/',what='|E|^2',name='intensity',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ex.r',name='Exr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ex.i',name='Exr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ey.r',name='Eyr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ey.i',name='Eyi',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
+        except:
+            pass
 
     DDA.sort('Dratio',inplace=True)
-    MIE.sort('Dratio',inplace=True)
-    ax.plot(MIE.Dratio,MIE.Qabs)
+#    MIE.sort('Dratio',inplace=True)
+#    ax.plot(MIE.Dratio,MIE.Qabs)
     ax.scatter(DDA.Dratio,DDA.Qabs)
     ax.grid()
 #    plt.show()
