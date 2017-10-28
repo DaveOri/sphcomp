@@ -8,6 +8,7 @@ from scipy import integrate
 
 #sys.path.append('/work/DBs/scattnlay')
 #from scattnlay import scattnlay
+#from scattnlay import fieldnlay
 #sys.path.append('/home/dori/pymiecoated')
 #from pymiecoated import Mie
 
@@ -24,7 +25,6 @@ def get_line(lines,string):
 def get_log_numbers(logfilename):
     logfile = open(logfilename,'r')
     lines = logfile.readlines()
-    #lam_lines = get_line(lines,'lambda:')
     lam_dda = float(get_line(lines,'lambda:').split()[-1])
     dpl = float(get_line(lines,'Dipoles/lambda:').split()[-1])
     Ndipoles = int(get_line(lines,'Total number of occupied dipoles:').split()[-1])
@@ -179,18 +179,14 @@ for freq_str in freqs.keys():
         g = moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,1)/moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,0)
         DDA.loc[i] = inner_size/outer_size, Qext, Qsca, Qabs, Qbck, g, Qsca/Qext
         
-        #results = scattnlay(x,m,theta=thetas)
-        #MIE.loc[i] = inner_size/outer_size, results[1][0], results[2][0], results[3][0], results[4][0], results[6][0], results[7][0]
-        #S1 = results[8][0]
-        #S2 = results[9][0]
+        #terms, MQe, MQs, MQa, MQb, MQp, Mg, Mssa, S1, S2 = = scattnlay(x,m,theta=thetas)
+        #MIE.loc[i] = inner_size/outer_size, MQe, MQs, MQa, MQb, Mg, Mssa
         #P11, P12, P33, P34 = Ampl2Mueller(S1,S2)
         #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
         #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
         #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
         #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
-        #print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,results[1][0]/Qext,results[2][0]/Qsca,results[3][0]/Qabs,results[4][0]/Qbck,g/results[6][0])
-        #print(results)
-        #print(len(results))
+        #print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,MQe/Qext,MQs/Qsca,MQa/Qabs,MQb/Qbck,g/Mg)
         
         try:
             intField = pd.read_csv(particle_folder+'/IntField-Y',sep=' ')
@@ -201,6 +197,14 @@ for freq_str in freqs.keys():
             plot_field(intField,savepath=particle_folder+'/',what='Ey.i',name='Eyi',radius=inner_size*1000)
             plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
             plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
+            #factor=2.5
+            #scan = np.linspace(-factor*x[0, 2], factor*x[0, 2], npts)
+            #coordX, coordZ = np.meshgrid(scan, scan)
+            #coordX.resize(npts*npts)
+            #coordZ.resize(npts*npts)
+            #coordY = np.zeros(npts*npts, dtype = np.float64)
+            #coord = np.vstack((coordX, coordY, coordZ)).transpose()
+            #terms, ME, MH = fieldnlay(x, m, coord)
         except:
             pass
 
