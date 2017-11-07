@@ -4,11 +4,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from glob import glob
 from scipy import integrate
-#from matplotlib.mlab import griddata
 
-#sys.path.append('/work/DBs/scattnlay')
-#from scattnlay import scattnlay
-#from scattnlay import fieldnlay
+sys.path.append('/work/DBs/scattnlay')
+from scattnlay import scattnlay
+from scattnlay import fieldnlay
 #sys.path.append('/home/dori/pymiecoated')
 #from pymiecoated import Mie
 
@@ -17,7 +16,7 @@ size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
 freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94}
-part_size = '10'
+part_size = '4'
 
 def get_line(lines,string):
     return [x for x in lines if string in x][0]
@@ -90,9 +89,10 @@ def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
     zi = intFieldX.z.apply(Z.index)
     xv, yv = np.meshgrid(Y, Z)
     zv = np.nan*xv
-    zv[yi,zi] = intFieldX[what]
+    zv[zi,yi] = intFieldX[what]
     plt.figure(figsize=(8,8),dpi=300)
-    plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
+    #plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
+    plt.pcolormesh(1000*xv,1000*yv,zv,cmap='jet',vmin=-0.2,vmax=0.3)
     plt.xlabel('Y')
     plt.ylabel('Z')
     plt.colorbar()
@@ -105,9 +105,10 @@ def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
     zi = intFieldY.z.apply(Z.index)
     xv, yv = np.meshgrid(X, Z)
     zv = np.nan*xv
-    zv[xi,zi] = intFieldY[what]
+    zv[zi,xi] = intFieldY[what]
     plt.figure(figsize=(8,8),dpi=300)
-    plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
+    #plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
+    plt.pcolormesh(1000*xv,1000*yv,zv,cmap='jet',vmin=-0.2,vmax=0.3)
     plt.xlabel('X')
     plt.ylabel('Z')
     plt.colorbar()
@@ -120,9 +121,10 @@ def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
     yi = intFieldZ.y.apply(Y.index)
     xv, yv = np.meshgrid(X, Y)
     zv = np.nan*xv
-    zv[xi,yi] = intFieldZ[what]
+    zv[yi,xi] = intFieldZ[what]
     plt.figure(figsize=(8,8),dpi=300)
-    plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
+    #plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
+    plt.pcolormesh(1000*xv,1000*yv,zv,cmap='jet',vmin=-0.2,vmax=0.3)
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.colorbar()
@@ -131,10 +133,80 @@ def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
     plt.tight_layout()
     plt.savefig(savepath+'Z'+name+'.png')
     plt.close('all')
+
+def plot_field_Mie(Xf,Yf,Zf,vmax,xlabel,ylabel,savename):
+    plt.figure(figsize=(8,8),dpi=300)
+    plt.pcolormesh(Xf,Yf,Zf,vmax=vmax,cmap='jet')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.colorbar()
+    plt.gca().set_aspect(1.0)
+    plt.tight_layout()
+    plt.savefig(savename)
+
+def compute_plot_field_Mie(x,m,folder,plane='X'):
+    factor = 1.0
+    npts=1000
+    scan = np.linspace(-factor*x[0, -1], factor*x[0, -1], npts)
+    coordX, coordZ = np.meshgrid(scan, scan)
+    coordX.resize(npts*npts)
+    coordY = 1.0*coordX
+    coordZ.resize(npts*npts)
+    coord0 = np.zeros(npts*npts, dtype = np.float64)
+            
+    if plane == 'X':
+        coord = np.vstack((coord0, coordY, coordZ)).transpose()
+        xlabel, ylabel = 'X', 'Y'
+    elif plane == 'Y':
+        coord = np.vstack((coordX, coord0, coordZ)).transpose()
+        xlabel, ylabel = 'X', 'Z'
+    elif plane == 'Z':
+        coord = np.vstack((coordX, coordY, coord0)).transpose()
+        xlabel, ylabel = 'Y', 'Z'
+
+    terms, ME, MH = fieldnlay(x, m, coord)
+    Mplot = ME[0,:,0].reshape(npts,npts).real
+    savename = folder+'/Mie'+plane+'E0.r'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    Mplot = ME[0,:,0].reshape(npts,npts).imag
+    savename = folder+'/Mie'+plane+'E0.i'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    Mplot = MH[0,:,0].reshape(npts,npts).real
+    savename = folder+'/Mie'+plane+'H0.r'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    Mplot = MH[0,:,0].reshape(npts,npts).imag
+    savename = folder+'/Mie'+plane+'H0.i'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
     
+    Mplot = ME[0,:,1].reshape(npts,npts).real
+    savename = particle_folder+'/Mie'+plane+'E1.r'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    Mplot = ME[0,:,1].reshape(npts,npts).imag
+    savename = particle_folder+'/Mie'+plane+'E1.i'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    Mplot = MH[0,:,1].reshape(npts,npts).real
+    savename = particle_folder+'/Mie'+plane+'H1.r'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    Mplot = MH[0,:,1].reshape(npts,npts).imag
+    savename = particle_folder+'/Mie'+plane+'H1.i'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+
+    Mplot = ME[0,:,2].reshape(npts,npts).real
+    savename = particle_folder+'/Mie'+plane+'E2.r'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    Mplot = ME[0,:,2].reshape(npts,npts).imag
+    savename = particle_folder+'/Mie'+plane+'E2.i'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    Mplot = MH[0,:,2].reshape(npts,npts).real
+    savename = particle_folder+'/Mie'+plane+'H2.r'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    Mplot = MH[0,:,2].reshape(npts,npts).imag
+    savename = particle_folder+'/Mie'+plane+'H2.i'+'.png'
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+
 
 data_folder = './'+str(part_size)+'mm'
-for freq_str in freqs.keys():
+for freq_str in freqs.keys()[0:1]:
     f = freqs[freq_str]
     lam = fr2lam(f)
     k2 = 4.*(np.pi/lam)**2
@@ -145,7 +217,7 @@ for freq_str in freqs.keys():
     plt.plot()
     ax = plt.gca()
 
-#    particles_folders = particles_folders[0:5]
+    particles_folders = particles_folders[0:1] ##
     for particle_folder,i in zip(particles_folders,range(len(particles_folders))):
         print(particle_folder)
         dipoles = pd.read_csv(particle_folder+'/coated.geom',sep=' ',header=4,names=['X','Y','Z','M'])
@@ -179,41 +251,37 @@ for freq_str in freqs.keys():
         g = moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,1)/moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,0)
         DDA.loc[i] = inner_size/outer_size, Qext, Qsca, Qabs, Qbck, g, Qsca/Qext
         
-        #terms, MQe, MQs, MQa, MQb, MQp, Mg, Mssa, S1, S2 = = scattnlay(x,m,theta=thetas)
-        #MIE.loc[i] = inner_size/outer_size, MQe, MQs, MQa, MQb, Mg, Mssa
-        #P11, P12, P33, P34 = Ampl2Mueller(S1,S2)
-        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
-        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
-        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
-        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
-        #print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,MQe/Qext,MQs/Qsca,MQa/Qabs,MQb/Qbck,g/Mg)
+        terms, MQe, MQs, MQa, MQb, MQp, Mg, Mssa, S1, S2 = scattnlay(x,m,theta=thetas)
+        MIE.loc[i] = inner_size/outer_size, MQe[0], MQs[0], MQa[0], MQb[0], Mg[0], Mssa[0]
+        P11, P12, P33, P34 = Ampl2Mueller(S1[0],S2[0])
+        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
+        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
+        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
+        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
+        print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,MQe[0]/Qext,MQs[0]/Qsca,MQa[0]/Qabs,MQb[0]/Qbck,Mg[0]/g)
         
-        try:
-            intField = pd.read_csv(particle_folder+'/IntField-Y',sep=' ')
-            plot_field(intField,savepath=particle_folder+'/',what='|E|^2',name='intensity',radius=inner_size*1000)
-            plot_field(intField,savepath=particle_folder+'/',what='Ex.r',name='Exr',radius=inner_size*1000)
-            plot_field(intField,savepath=particle_folder+'/',what='Ex.i',name='Exr',radius=inner_size*1000)
-            plot_field(intField,savepath=particle_folder+'/',what='Ey.r',name='Eyr',radius=inner_size*1000)
-            plot_field(intField,savepath=particle_folder+'/',what='Ey.i',name='Eyi',radius=inner_size*1000)
-            plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
-            plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
-            #factor=2.5
-            #scan = np.linspace(-factor*x[0, 2], factor*x[0, 2], npts)
-            #coordX, coordZ = np.meshgrid(scan, scan)
-            #coordX.resize(npts*npts)
-            #coordZ.resize(npts*npts)
-            #coordY = np.zeros(npts*npts, dtype = np.float64)
-            #coord = np.vstack((coordX, coordY, coordZ)).transpose()
-            #terms, ME, MH = fieldnlay(x, m, coord)
-        except:
-            pass
+        #try:
+        print('intfield')
+        intField = pd.read_csv(particle_folder+'/IntField-Y',sep=' ')
+        plot_field(intField,savepath=particle_folder+'/',what='|E|^2',name='intensity',radius=inner_size*1000)
+        plot_field(intField,savepath=particle_folder+'/',what='Ex.r',name='Exr',radius=inner_size*1000)
+        plot_field(intField,savepath=particle_folder+'/',what='Ex.i',name='Exr',radius=inner_size*1000)
+        plot_field(intField,savepath=particle_folder+'/',what='Ey.r',name='Eyr',radius=inner_size*1000)
+        plot_field(intField,savepath=particle_folder+'/',what='Ey.i',name='Eyi',radius=inner_size*1000)
+        plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
+        plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
+
+        print('fieldnalay')
+        compute_plot_field_Mie(x,m,particle_folder,plane='X')
+        compute_plot_field_Mie(x,m,particle_folder,plane='Y')
+        compute_plot_field_Mie(x,m,particle_folder,plane='Z')
+
+        #except:
+        #    pass
 
     DDA.sort('Dratio',inplace=True)
-#    MIE.sort('Dratio',inplace=True)
-#    ax.plot(MIE.Dratio,MIE.Qabs)
+    MIE.sort('Dratio',inplace=True)
+    ax.plot(MIE.Dratio,MIE.Qabs)
     ax.scatter(DDA.Dratio,DDA.Qabs)
     ax.grid()
-#    plt.show()
-
-                
-
+    plt.show()
