@@ -16,7 +16,7 @@ size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
 freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94}
-part_size = '4'
+part_size = '10'
 
 def get_line(lines,string):
     return [x for x in lines if string in x][0]
@@ -66,7 +66,7 @@ def plotMueller(angles,data,tags,title,figname):
     ax.set_xlabel('Scattering angle')
     ax.set_ylabel(title)
     ax.legend()
-    plt.savefig(figname)
+    plt.savefig(figname,dpi=300)
     plt.close()
 
 deg2rad = lambda angles: np.pi*angles/180.0
@@ -205,8 +205,11 @@ def compute_plot_field_Mie(x,m,folder,plane='X'):
     plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
 
 
+MIEdict = {}
+DDAdict = {}
+
 data_folder = './'+str(part_size)+'mm'
-for freq_str in freqs.keys()[0:1]:
+for freq_str in freqs.keys():#[0:1]:
     f = freqs[freq_str]
     lam = fr2lam(f)
     k2 = 4.*(np.pi/lam)**2
@@ -217,10 +220,10 @@ for freq_str in freqs.keys()[0:1]:
     plt.plot()
     ax = plt.gca()
 
-    particles_folders = particles_folders[0:1] ##
+    particles_folders = particles_folders#[0:10] ##
     for particle_folder,i in zip(particles_folders,range(len(particles_folders))):
         print(particle_folder)
-        dipoles = pd.read_csv(particle_folder+'/coated.geom',sep=' ',header=4,names=['X','Y','Z','M'])
+        #dipoles = pd.read_csv(particle_folder+'/coated.geom',sep=' ',header=4,names=['X','Y','Z','M'])
         mueller = pd.read_csv(particle_folder+'/mueller',sep=' ',index_col='theta')
 
         logfilename = particle_folder+'/log'
@@ -249,39 +252,65 @@ for freq_str in freqs.keys()[0:1]:
         m[:,1] = n1
         thetas = deg2rad(mueller.index.values)
         g = moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,1)/moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,0)
-        DDA.loc[i] = inner_size/outer_size, Qext, Qsca, Qabs, Qbck, g, Qsca/Qext
+        DDA.loc[i] = inner_size/outer_size, Qext, Qabs, Qsca, Qbck, g, Qsca/Qext
         
         terms, MQe, MQs, MQa, MQb, MQp, Mg, Mssa, S1, S2 = scattnlay(x,m,theta=thetas)
-        MIE.loc[i] = inner_size/outer_size, MQe[0], MQs[0], MQa[0], MQb[0], Mg[0], Mssa[0]
+        MIE.loc[i] = inner_size/outer_size, MQe[0], MQa[0], MQs[0], MQb[0], Mg[0], Mssa[0]
         P11, P12, P33, P34 = Ampl2Mueller(S1[0],S2[0])
         plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
         plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
         plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
         plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
-        print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,MQe[0]/Qext,MQs[0]/Qsca,MQa[0]/Qabs,MQb[0]/Qbck,Mg[0]/g)
+        #print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,MQe[0]/Qext,MQs[0]/Qsca,MQa[0]/Qabs,MQb[0]/Qbck,Mg[0]/g)
         
-        #try:
-        print('intfield')
-        intField = pd.read_csv(particle_folder+'/IntField-Y',sep=' ')
-        plot_field(intField,savepath=particle_folder+'/',what='|E|^2',name='intensity',radius=inner_size*1000)
-        plot_field(intField,savepath=particle_folder+'/',what='Ex.r',name='Exr',radius=inner_size*1000)
-        plot_field(intField,savepath=particle_folder+'/',what='Ex.i',name='Exr',radius=inner_size*1000)
-        plot_field(intField,savepath=particle_folder+'/',what='Ey.r',name='Eyr',radius=inner_size*1000)
-        plot_field(intField,savepath=particle_folder+'/',what='Ey.i',name='Eyi',radius=inner_size*1000)
-        plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
-        plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
+        try:
+            print('intfield')
+            intField = pd.read_csv(particle_folder+'/IntField-y.dat',sep=' ')
+            plot_field(intField,savepath=particle_folder+'/',what='|E|^2',name='intensity',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ex.r',name='Exr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ex.i',name='Exr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ey.r',name='Eyr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ey.i',name='Eyi',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
+    
+#            print('fieldnalay')
+#            compute_plot_field_Mie(x,m,particle_folder,plane='X')
+#            compute_plot_field_Mie(x,m,particle_folder,plane='Y')
+#            compute_plot_field_Mie(x,m,particle_folder,plane='Z')
 
-        print('fieldnalay')
-        compute_plot_field_Mie(x,m,particle_folder,plane='X')
-        compute_plot_field_Mie(x,m,particle_folder,plane='Y')
-        compute_plot_field_Mie(x,m,particle_folder,plane='Z')
-
-        #except:
-        #    pass
-
+        except:
+            pass
+    DDAdict[freq_str] = DDA
+    MIEdict[freq_str] = MIE
+    
     DDA.sort('Dratio',inplace=True)
     MIE.sort('Dratio',inplace=True)
     ax.plot(MIE.Dratio,MIE.Qabs)
     ax.scatter(DDA.Dratio,DDA.Qabs)
     ax.grid()
     plt.show()
+
+def plot_comparison(dda_data,mie_data,quantity,folder):
+    plt.figure()
+    ax = plt.gca()
+    figname = folder + '/' + quantity + '.png'
+    for f in dda_data.keys():
+        DFdda = dda_data[f]
+        DFmie = mie_data[f]
+        ax.plot(DFmie['Dratio'],DFmie[quantity],label=f)
+        ax.scatter(DFdda['Dratio'],DFdda[quantity].values,marker='.')
+    ax.set_xlabel('D$_{out}$/D$_{in}$')
+    ax.set_ylabel(quantity)
+    ax.set_xlim([0.5,1.0])
+    ax.grid()
+    ax.legend(loc=2)
+    plt.savefig(figname,dpi=300)
+    plt.close()
+
+plot_comparison(DDAdict,MIEdict,quantity='Qext',folder=data_folder)
+plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder)
+plot_comparison(DDAdict,MIEdict,quantity='Qabs',folder=data_folder)
+plot_comparison(DDAdict,MIEdict,quantity='Qbk',folder=data_folder)
+plot_comparison(DDAdict,MIEdict,quantity='g',folder=data_folder)
+plot_comparison(DDAdict,MIEdict,quantity='ssa',folder=data_folder)
