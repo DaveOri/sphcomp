@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from glob import glob
 from scipy import integrate
+import gc
+import resource
 
 sys.path.append('/work/DBs/scattnlay')
 from scattnlay import scattnlay
@@ -16,7 +18,7 @@ size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
 freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94}
-part_size = '10'
+part_size = '4'
 
 def get_line(lines,string):
     return [x for x in lines if string in x][0]
@@ -50,10 +52,10 @@ def get_cross_sections(CrossSecFileName):
 
 def Ampl2Mueller(S1,S2):
     P11 = 0.5*(S1*S1.conj()+S2*S2.conj()).real
-    P22 = 0.5*(S2*S2.conj()-S1*S1.conj()).real
+    P12 = 0.5*(S2*S2.conj()-S1*S1.conj()).real
     P33 = 0.5*(S1*S2.conj()+S2*S1.conj()).real
     P34 = (complex(0.5,0.5)*(S1*S2.conj()-S2*S1.conj())).real
-    return P11, P22, P33, P34
+    return P11, P12, P33, P34
 
 def plotMueller(angles,data,tags,title,figname):
     plt.figure()
@@ -68,12 +70,20 @@ def plotMueller(angles,data,tags,title,figname):
     ax.legend()
     plt.savefig(figname,dpi=300)
     plt.close()
+    plt.clf()
 
 deg2rad = lambda angles: np.pi*angles/180.0
 rad2deg = lambda angles: 180.0*angles/np.pi
 moment  = lambda  x,y,k: integrate.trapz(y*x**k,x)
 
 def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
+    if what=='|E|^2':
+        vmin = 0.0
+        vmax = 0.1
+    else:
+        vmin = -0.3
+        vmax = 0.3
+    
     intFieldX = field[field.x == min(abs(field.x))]
     intFieldY = field[field.y == min(abs(field.y))]
     intFieldZ = field[field.z == min(abs(field.z))]
@@ -92,7 +102,7 @@ def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
     zv[zi,yi] = intFieldX[what]
     plt.figure(figsize=(8,8),dpi=300)
     #plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
-    plt.pcolormesh(1000*xv,1000*yv,zv,cmap='jet',vmin=-0.2,vmax=0.3)
+    plt.pcolormesh(1000*xv,1000*yv,zv,cmap='jet',vmin=vmin,vmax=vmax)
     plt.xlabel('Y')
     plt.ylabel('Z')
     plt.colorbar()
@@ -108,7 +118,7 @@ def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
     zv[zi,xi] = intFieldY[what]
     plt.figure(figsize=(8,8),dpi=300)
     #plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
-    plt.pcolormesh(1000*xv,1000*yv,zv,cmap='jet',vmin=-0.2,vmax=0.3)
+    plt.pcolormesh(1000*xv,1000*yv,zv,cmap='jet',vmin=vmin,vmax=vmax)
     plt.xlabel('X')
     plt.ylabel('Z')
     plt.colorbar()
@@ -124,7 +134,7 @@ def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
     zv[yi,xi] = intFieldZ[what]
     plt.figure(figsize=(8,8),dpi=300)
     #plt.contourf(1000*xv,1000*yv,1000*zv,cmap='jet')
-    plt.pcolormesh(1000*xv,1000*yv,zv,cmap='jet',vmin=-0.2,vmax=0.3)
+    plt.pcolormesh(1000*xv,1000*yv,zv,cmap='jet',vmin=vmin,vmax=vmax)
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.colorbar()
@@ -133,19 +143,31 @@ def plot_field(field,savepath,what='|E|^2',name='intensity',radius=0):
     plt.tight_layout()
     plt.savefig(savepath+'Z'+name+'.png')
     plt.close('all')
+    plt.clf()
+    del xv,yv,zv,xi,zi,intFieldX,intFieldY,intFieldZ,X,Y,Z
 
-def plot_field_Mie(Xf,Yf,Zf,vmax,xlabel,ylabel,savename):
+def plot_field_Mie(Xf,Yf,Zf,vlim,xlabel,ylabel,savename,radius=0.0):
+    vmin,vmax = vlim
+    
+    circle1 = plt.Circle((0, 0), radius[0], color='k', fill=False)
+    circle2 = plt.Circle((0, 0), radius[1], color='k', fill=False)
+    
     plt.figure(figsize=(8,8),dpi=300)
-    plt.pcolormesh(Xf,Yf,Zf,vmax=vmax,cmap='jet')
+    plt.pcolormesh(Xf,Yf,Zf,vmin=vmin,vmax=vmax,cmap='jet')
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.colorbar()
+    plt.gca().add_artist(circle1)
+    plt.gca().add_artist(circle2)
     plt.gca().set_aspect(1.0)
     plt.tight_layout()
     plt.savefig(savename)
+    plt.close()
+    plt.clf()
 
 def compute_plot_field_Mie(x,m,folder,plane='X'):
     factor = 1.0
+    radii = [factor*x[0,0],factor*x[0,1]]
     npts=1000
     scan = np.linspace(-factor*x[0, -1], factor*x[0, -1], npts)
     coordX, coordZ = np.meshgrid(scan, scan)
@@ -156,54 +178,61 @@ def compute_plot_field_Mie(x,m,folder,plane='X'):
             
     if plane == 'X':
         coord = np.vstack((coord0, coordY, coordZ)).transpose()
-        xlabel, ylabel = 'X', 'Y'
+        xlabel, ylabel = 'Y', 'Z'
     elif plane == 'Y':
         coord = np.vstack((coordX, coord0, coordZ)).transpose()
         xlabel, ylabel = 'X', 'Z'
     elif plane == 'Z':
         coord = np.vstack((coordX, coordY, coord0)).transpose()
-        xlabel, ylabel = 'Y', 'Z'
+        xlabel, ylabel = 'X', 'Y'
 
+    vlim = [-0.3,0.3]
     terms, ME, MH = fieldnlay(x, m, coord)
+    
     Mplot = ME[0,:,0].reshape(npts,npts).real
     savename = folder+'/Mie'+plane+'E0.r'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
     Mplot = ME[0,:,0].reshape(npts,npts).imag
     savename = folder+'/Mie'+plane+'E0.i'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
-    Mplot = MH[0,:,0].reshape(npts,npts).real
-    savename = folder+'/Mie'+plane+'H0.r'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
-    Mplot = MH[0,:,0].reshape(npts,npts).imag
-    savename = folder+'/Mie'+plane+'H0.i'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
+    #Mplot = MH[0,:,0].reshape(npts,npts).real
+    #savename = folder+'/Mie'+plane+'H0.r'+'.png'
+    #plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
+    #Mplot = MH[0,:,0].reshape(npts,npts).imag
+    #savename = folder+'/Mie'+plane+'H0.i'+'.png'
+    #plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
     
     Mplot = ME[0,:,1].reshape(npts,npts).real
     savename = particle_folder+'/Mie'+plane+'E1.r'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
     Mplot = ME[0,:,1].reshape(npts,npts).imag
     savename = particle_folder+'/Mie'+plane+'E1.i'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
-    Mplot = MH[0,:,1].reshape(npts,npts).real
-    savename = particle_folder+'/Mie'+plane+'H1.r'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
-    Mplot = MH[0,:,1].reshape(npts,npts).imag
-    savename = particle_folder+'/Mie'+plane+'H1.i'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
+    #Mplot = MH[0,:,1].reshape(npts,npts).real
+    #savename = particle_folder+'/Mie'+plane+'H1.r'+'.png'
+    #plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
+    #Mplot = MH[0,:,1].reshape(npts,npts).imag
+    #savename = particle_folder+'/Mie'+plane+'H1.i'+'.png'
+    #plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
 
     Mplot = ME[0,:,2].reshape(npts,npts).real
     savename = particle_folder+'/Mie'+plane+'E2.r'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
     Mplot = ME[0,:,2].reshape(npts,npts).imag
     savename = particle_folder+'/Mie'+plane+'E2.i'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
-    Mplot = MH[0,:,2].reshape(npts,npts).real
-    savename = particle_folder+'/Mie'+plane+'H2.r'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
-    Mplot = MH[0,:,2].reshape(npts,npts).imag
-    savename = particle_folder+'/Mie'+plane+'H2.i'+'.png'
-    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,0.3,xlabel,ylabel,savename)
-
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
+    #Mplot = MH[0,:,2].reshape(npts,npts).real
+    #savename = particle_folder+'/Mie'+plane+'H2.r'+'.png'
+    #plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
+    #Mplot = MH[0,:,2].reshape(npts,npts).imag
+    #savename = particle_folder+'/Mie'+plane+'H2.i'+'.png'
+    #plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
+    
+    Mplot = (ME[0,:,0]*ME[0,:,0].conj()+ME[0,:,1]*ME[0,:,1].conj()+ME[0,:,2]*ME[0,:,2].conj()).reshape(npts,npts).real
+    savename = particle_folder+'/Mie'+plane+'intensity'+'.png'
+    vlim = [0.0,0.1]
+    plot_field_Mie(coordX.reshape((npts,npts)),coordZ.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
+    del scan, coordX, coordY, coordZ, coord0, coord, ME, MH
 
 MIEdict = {}
 DDAdict = {}
@@ -274,22 +303,18 @@ for freq_str in freqs.keys():#[0:1]:
             plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
             plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
     
-#            print('fieldnalay')
-#            compute_plot_field_Mie(x,m,particle_folder,plane='X')
-#            compute_plot_field_Mie(x,m,particle_folder,plane='Y')
-#            compute_plot_field_Mie(x,m,particle_folder,plane='Z')
-
+            print('fieldnalay')
+            compute_plot_field_Mie(x,m,particle_folder,plane='X')
+            compute_plot_field_Mie(x,m,particle_folder,plane='Y')
+            compute_plot_field_Mie(x,m,particle_folder,plane='Z')
         except:
             pass
+        del intField, P11, P12, P33, P34, S1, S2, mueller, thetas
+        print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        gc.collect()
+        print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     DDAdict[freq_str] = DDA
     MIEdict[freq_str] = MIE
-    
-    DDA.sort('Dratio',inplace=True)
-    MIE.sort('Dratio',inplace=True)
-    ax.plot(MIE.Dratio,MIE.Qabs)
-    ax.scatter(DDA.Dratio,DDA.Qabs)
-    ax.grid()
-    plt.show()
 
 def plot_comparison(dda_data,mie_data,quantity,folder):
     plt.figure()
@@ -307,6 +332,7 @@ def plot_comparison(dda_data,mie_data,quantity,folder):
     ax.legend(loc=2)
     plt.savefig(figname,dpi=300)
     plt.close()
+    plt.clf()
 
 plot_comparison(DDAdict,MIEdict,quantity='Qext',folder=data_folder)
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder)
