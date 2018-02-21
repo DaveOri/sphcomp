@@ -21,8 +21,8 @@ incircle = plt.Circle((cx,cy),insize*0.5,color='k', fill=False)
 ax.add_artist(outcircle)
 ax.add_artist(incircle)
 
-jagged=2
-resolved=1
+jagged=1
+resolved=2
 
 resolution = 8 # how many dipoles per side
 d = size/resolution
@@ -51,9 +51,11 @@ if not (resolved-1 or jagged-1):
     
     ax.set_xlim([0,size])
     ax.set_ylim([0,size])
+    ax.set_xticks([])
+    ax.set_yticks([])
     ax.set_aspect(1.0)
-    fig.savefig('grid_layered.pdf')
-    fig.savefig('grid_layered.png',dpi=300)
+    fig.savefig('grid_layered.pdf',bbox_inches='tight')
+    fig.savefig('grid_layered.png',dpi=300,bbox_inches='tight')
 
 if jagged-1:
     dj = d/jagged
@@ -84,9 +86,11 @@ if jagged-1:
 
     ax.set_xlim([0,size])
     ax.set_ylim([0,size])
+    ax.set_xticks([])
+    ax.set_yticks([])
     ax.set_aspect(1.0)
-    fig.savefig('grid_layered_jagged.pdf')
-    fig.savefig('grid_layered_jagged.png',dpi=300)
+    fig.savefig('grid_layered_jagged.pdf',bbox_inches='tight')
+    fig.savefig('grid_layered_jagged.png',dpi=300,bbox_inches='tight')
 
 if resolved-1:
     resolution = resolution*resolved # how many dipoles per side
@@ -116,15 +120,8 @@ if resolved-1:
 
     ax.set_xlim([0,size])
     ax.set_ylim([0,size])
+    ax.set_xticks([])
+    ax.set_yticks([])
     ax.set_aspect(1.0)
-    fig.savefig('grid_layered_hires.pdf')
-    fig.savefig('grid_layered_hires.png',dpi=300)
-
-#    for x,y in zip(ptinx,ptiny):
-#        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=False,color='k')
-#        ax.add_patch(p)
-#
-#    for x,y in zip(ptoutx,ptouty):
-#        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=False,color='k')
-#        ax.add_patch(p)
-
+    fig.savefig('grid_layered_hires.pdf',bbox_inches='tight')
+    fig.savefig('grid_layered_hires.png',dpi=300,bbox_inches='tight')
