@@ -37,17 +37,17 @@ rad2 = ((ptsx-cx)**2+(ptsy-cy)**2)
 if 1:#not (resolved-1 or jagged-1):
     rboolin = (rad2 < (0.5*insize)**2)
     ptinx, ptiny = ptsx[rboolin],ptsy[rboolin]
-    ax1.scatter(ptinx,ptiny,c='xkcd:blue')
+    ax1.scatter(ptinx,ptiny,c='xkcd:blue grey')
     
     rboolout = (rad2 < (0.5*size)**2) * (rad2 > (0.5*insize)**2)
     ptoutx, ptouty = ptsx[rboolout],ptsy[rboolout]
-    ax1.scatter(ptoutx,ptouty,c='xkcd:bright orange')
+    ax1.scatter(ptoutx,ptouty,c='xkcd:electric blue')
     for x,y in zip(ptinx,ptiny):
-        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:turquoise')
+        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:blue grey')
         ax1.add_patch(p)
     
     for x,y in zip(ptoutx,ptouty):
-        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:orange')
+        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:azure')
         ax1.add_patch(p)
     
     ax1.set_xlim([0,size])
@@ -71,10 +71,10 @@ if jagged-1:
         ptsxj, ptsyj = np.meshgrid(ccoojx,ccoojy)
         ptsxj = ptsxj.flatten()
         ptsyj = ptsyj.flatten()
-        ax2.scatter(ptsxj,ptsyj,c='xkcd:bright orange',s=10)
+        ax2.scatter(ptsxj,ptsyj,c='xkcd:electric blue',s=10)
 
         for x,y in zip(ptsxj,ptsyj):
-            p = patches.Rectangle((x-halfdj,y-halfdj),dj,dj,fill=True,alpha=0.2,color='xkcd:orange')
+            p = patches.Rectangle((x-halfdj,y-halfdj),dj,dj,fill=True,alpha=0.2,color='xkcd:azure')
             ax2.add_patch(p)
         
     for cxj,cyj in zip(ptinx,ptiny):
@@ -83,10 +83,10 @@ if jagged-1:
         ptsxj, ptsyj = np.meshgrid(ccoojx,ccoojy)
         ptsxj = ptsxj.flatten()
         ptsyj = ptsyj.flatten()
-        ax2.scatter(ptsxj,ptsyj,c='xkcd:blue',s=10)
+        ax2.scatter(ptsxj,ptsyj,c='xkcd:blue grey',s=10)
         
         for x,y in zip(ptsxj,ptsyj):
-            p = patches.Rectangle((x-halfdj,y-halfdj),dj,dj,fill=True,alpha=0.2,color='xkcd:turquoise')
+            p = patches.Rectangle((x-halfdj,y-halfdj),dj,dj,fill=True,alpha=0.2,color='xkcd:blue grey')
             ax2.add_patch(p)
 
     ax2.set_xlim([0,size])
@@ -113,18 +113,18 @@ if resolved-1:
     
     rboolin = (rad2 < (0.5*insize)**2)
     ptinx, ptiny = ptsx[rboolin],ptsy[rboolin]
-    ax3.scatter(ptinx,ptiny,c='xkcd:blue',s=10)
+    ax3.scatter(ptinx,ptiny,c='xkcd:blue grey',s=10)
 
     rboolout = (rad2 < (0.5*size)**2) * (rad2 > (0.5*insize)**2)
     ptoutx, ptouty = ptsx[rboolout],ptsy[rboolout]
-    ax3.scatter(ptoutx,ptouty,c='xkcd:bright orange',s=10)
+    ax3.scatter(ptoutx,ptouty,c='xkcd:electric blue',s=10)
     
     for x,y in zip(ptinx,ptiny):
-        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:turquoise')
+        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:blue grey')
         ax3.add_patch(p)
 
     for x,y in zip(ptoutx,ptouty):
-        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:orange')
+        p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:azure')
         ax3.add_patch(p)
 
     ax3.set_xlim([0,size])

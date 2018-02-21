@@ -18,8 +18,8 @@ f,axes = plt.subplots(1,len(melt_fracs))
 for mf,ax in zip(melt_fracs,axes):
     fr = 1-mf
     insize = fr*size
-    outcircle = plt.Circle((cx,cy),size*0.5,color='xkcd:melon', fill=True,alpha=0.7)
-    incircle = plt.Circle((cx,cy),insize*0.5,color='xkcd:robin egg blue', fill=True)
+    outcircle = plt.Circle((cx,cy),size*0.5,color='xkcd:azure', fill=True,alpha=0.7)
+    incircle = plt.Circle((cx,cy),insize*0.5,color='xkcd:blue grey', fill=True)
     ax.add_artist(outcircle)
     ax.add_artist(incircle)
     outring = plt.Circle((cx,cy),size*0.5,color='k', fill=False)
