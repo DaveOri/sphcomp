@@ -32,8 +32,14 @@ for d in ds:
 ax1.set_ylim(0,0.6)
 ax1t.set_ylim(0,0.6)
 ax1.grid()
-ax1.legend(loc=2,title='ice dipole')
-ax1t.legend(loc=6,title='water dipole')
+ax1.legend(loc=2,title='d  [$\mu$m]')
+#ax1t.legend(loc=6,title='water dipole')
+ax1t.tick_params( axis='y',
+                 which='both',
+                 left='off',
+                 right='off',
+                 labelright='off',
+                 labelleft='off')
 ax1.set_xlabel('Frequency    [GHz]')
 ax1.set_ylabel('|m|kd')
 f.savefig('mkd.pdf')
