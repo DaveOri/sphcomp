@@ -13,13 +13,27 @@ from scattnlay import fieldnlay
 #sys.path.append('/home/dori/pymiecoated')
 #from pymiecoated import Mie
 
+import matplotlib as mpl
+from cycler import cycler
+mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c', u'#1f77b4',  u'#9467bd'])
+
+from collections import OrderedDict
+
 c = 299792458. # m/s
 size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
-freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
+#freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
+freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 
-part_size = '20'
+part_size = '4'
+if part_size == '20':
+    vlin=np.array([0.02,0.04,0.06,0.08])
+elif part_size == '10':
+    vlin=np.array([0.02,0.04,0.06,0.08])
+elif part_size == '4':
+    vlin=np.array([0.02,0.04,0.06,0.08])
+
 Dout = float(part_size)
 #from sys import argv
 #scriptname, part_size = argv
@@ -236,8 +250,8 @@ def compute_plot_field_Mie(x,m,folder,plane='X'):
     vlim = [0.0,0.1]
     plot_field_Mie(coord1.reshape((npts,npts)),coord2.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
 
-MIEdict = {}
-DDAdict = {}
+MIEdict = OrderedDict()
+DDAdict = OrderedDict()
 
 data_folder = '/data/optimice/scattering_databases/melting_sphere/'+str(part_size)+'mm'
 for freq_str in freqs.keys():#[0:1]:
@@ -290,11 +304,11 @@ for freq_str in freqs.keys():#[0:1]:
         
         terms, MQe, MQs, MQa, MQb, MQp, Mg, Mssa, S1, S2 = scattnlay(x,m,theta=thetas)
         MIE.loc[i] = inner_size/outer_size, MQe[0], MQa[0], MQs[0], MQb[0], Mg[0], Mssa[0]
-        P11, P12, P33, P34 = Ampl2Mueller(S1[0],S2[0])
-        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
-        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
-        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
-        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
+        #P11, P12, P33, P34 = Ampl2Mueller(S1[0],S2[0])
+        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
+        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
+        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
+        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
         #print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,MQe[0]/Qext,MQs[0]/Qsca,MQa[0]/Qabs,MQb[0]/Qbck,Mg[0]/g)
         
 #        try:
@@ -331,8 +345,8 @@ def plot_comparison(dda_data,mie_data,quantity,folder,ax=None):
         for f in dda_data.keys():
             DFdda = dda_data[f]
             DFmie = mie_data[f]
-            lay_thick_mie = Dout*(1.0 - DFmie['Dratio'])
-            lay_thick_dda = Dout*(1.0 - DFdda['Dratio'])
+            lay_thick_mie = 0.5*Dout*(1.0 - DFmie['Dratio'])
+            lay_thick_dda = 0.5*Dout*(1.0 - DFdda['Dratio'])
             ax.plot(lay_thick_mie,DFmie[quantity],label=f)
             ax.scatter(lay_thick_dda,DFdda[quantity].values,marker='.')
         ax.set_xlabel('water layer thickness   [mm]')
@@ -348,14 +362,20 @@ def plot_comparison(dda_data,mie_data,quantity,folder,ax=None):
         #axt=ax.twinx()
         for f in dda_data.keys():
             DFmie = mie_data[f]
-            lay_thick_mie = Dout*(1.0 - DFmie['Dratio'])
+            lay_thick_mie = 0.5*Dout*(1.0 - DFmie['Dratio'])
             ax.semilogx(lay_thick_mie,DFmie[quantity],label=f)
         ax.set_color_cycle(None)
         for f in dda_data.keys():
             DFdda = dda_data[f]
-            lay_thick_dda = Dout*(1.0 - DFdda['Dratio'])
+            lay_thick_dda = 0.5*Dout*(1.0 - DFdda['Dratio'])
             ax.semilogx(lay_thick_dda,DFdda[quantity].values,marker='.',linewidth=0)
-        #axt.axis('off')
+        i=0
+        for vl in vlin:
+                    vline2d = ax.axvline(vl,ls='--',c='k')
+                    dataline = vline2d.get_data()
+                    i = i+1
+                    print(ax.get_ybound())
+                    ax.text(1.05*dataline[0][0],0.8*ax.get_ybound()[1],str(i))
         ax.grid()
 
 def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
@@ -366,7 +386,7 @@ def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
         for f in dda_data.keys():
             DFdda = dda_data[f]
             DFmie = mie_data[f]
-            lay_thick = Dout*(1 - DFmie['Dratio'])
+            lay_thick = 0.5*Dout*(1 - DFmie['Dratio'])
             ax.plot(lay_thick,(DFmie[quantity]-DFdda[quantity].values),label=f)
         ax.set_xlabel('water layer thickness   [mm]')
         ax.set_ylabel(quantity + ' absolute difference')
@@ -381,9 +401,11 @@ def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
         for f in dda_data.keys():
             DFdda = dda_data[f]
             DFmie = mie_data[f]
-            lay_thick = Dout*(1 - DFmie['Dratio'])
+            lay_thick = 0.5*Dout*(1 - DFmie['Dratio'])
             ax.semilogx(lay_thick,(DFmie[quantity]-DFdda[quantity].values),label=f)
-            ax.grid()
+        for vl in vlin:
+            ax.axvline(vl,ls='--',c='k')
+        ax.grid()
         
 def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
     if ax is None:
@@ -393,7 +415,7 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
         for f in dda_data.keys():
             DFdda = dda_data[f]
             DFmie = mie_data[f]
-            lay_thick = Dout*(1 - DFmie['Dratio'])
+            lay_thick = 0.5*Dout*(1 - DFmie['Dratio'])
             ax.plot(lay_thick,100*(DFmie[quantity]-DFdda[quantity].values)/DFmie[quantity].values,label=f)
         ax.set_xlabel('water layer thickness   [mm]')
         ax.set_ylabel(quantity + ' relative difference')
@@ -409,10 +431,18 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
         for f in dda_data.keys():
             DFdda = dda_data[f]
             DFmie = mie_data[f]
-            lay_thick = Dout*(1 - DFmie['Dratio'])
+            lay_thick = 0.5*Dout*(1 - DFmie['Dratio'])
             ax.semilogx(lay_thick,100*(DFmie[quantity]-DFdda[quantity].values)/DFmie[quantity].values,label=f)
+        i = 0
+        print(ax.get_ybound())
+        ax.set_ylim([-50,50])
+        for vl in vlin:
+                    vline2d = ax.axvline(vl,ls='--',c='k')
+                    dataline = vline2d.get_data()
+                    i = i+1
+                    print(ax.get_ybound())
+                    ax.text(1.05*dataline[0][0],0.8*ax.get_ybound()[1],str(i))
         ax.grid()
-        ax.set_ylim([-10,10])
 
 plot_comparison(DDAdict,MIEdict,quantity='Qext',folder=data_folder)
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder)
@@ -436,7 +466,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder)
 plot_relative_difference(DDAdict,MIEdict,quantity='ssa',folder=data_folder)
 
 
-f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(14,12))
+f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(9.5,9.5))
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax1)
 plot_comparison(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax3)
 plot_comparison(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax5)
@@ -447,7 +477,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=a
 plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax6)
 plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
 
-ax2.legend(ncol=5)
+ax2.legend(loc=1,ncol=1)
 ax1.set_ylabel('Q$_{sca}$')
 ax2.set_ylabel('$\Delta$Q$_{sca}$     [%]')
 ax3.set_ylabel('Q$_{abs}$')
@@ -458,5 +488,6 @@ ax7.set_ylabel('g')
 ax8.set_ylabel('$\Delta$ g     [%]')
 ax8.set_xlabel('Water layer thickness [mm]')
 ax7.set_xlabel('Water layer thickness [mm]')
-f.savefig(data_folder + '/'+part_size+'mm8_panel.png',dpi=300)
-f.savefig(data_folder + '/'+part_size+'mm8_panel.pdf',dpi=300)
+f.suptitle(part_size+'mm sphere variable water layer thickness',y=0.92)
+f.savefig(data_folder + '/'+'8_panel.png',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300,bbox_inches='tight')

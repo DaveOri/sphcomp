@@ -13,11 +13,18 @@ from scattnlay import fieldnlay
 #sys.path.append('/home/dori/pymiecoated')
 #from pymiecoated import Mie
 
+import matplotlib as mpl
+from cycler import cycler
+mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c', u'#1f77b4',  u'#9467bd'])
+
+from collections import OrderedDict
+
 c = 299792458. # m/s
 size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
-freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
+#freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
+freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 
 part_size = '10'
 #from sys import argv
@@ -235,8 +242,8 @@ def compute_plot_field_Mie(x,m,folder,plane='X'):
     vlim = [0.0,0.1]
     plot_field_Mie(coord1.reshape((npts,npts)),coord2.reshape((npts,npts)),Mplot,vlim,xlabel,ylabel,savename,radius=radii)
 
-MIEdict = {}
-DDAdict = {}
+MIEdict = OrderedDict()
+DDAdict = OrderedDict()
 
 data_folder = '/data/optimice/scattering_databases/melting_sphere/test_resolution/'+str(part_size)+'mm/0_99'
 for freq_str in freqs.keys():#[0:1]:
@@ -407,7 +414,7 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
             DFmie = mie_data[f]
             ax.plot(1.0e6*DFmie['dipole_spacing'],100*(DFmie[quantity]-DFdda[quantity].values)/DFmie[quantity].values,label=f)
         ax.grid()
-        ax.set_ylim([-20,20])
+        #ax.set_ylim([-20,20])
 
 plot_comparison(DDAdict,MIEdict,quantity='Qext',folder=data_folder)
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder)
@@ -431,7 +438,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder)
 plot_relative_difference(DDAdict,MIEdict,quantity='ssa',folder=data_folder)
 
 
-f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(14,12))
+f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(9.5,9.5))
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax1)
 plot_comparison(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax3)
 plot_comparison(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax5)
@@ -455,3 +462,6 @@ ax8.set_xlabel('dipole spacing [um]')
 ax7.set_xlabel('dipole spacing [um]')
 f.savefig(data_folder + '/'+'8_panel.png',dpi=300)
 f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300)
+f.suptitle('10mm sphere 50um water test resolution (resolution and shape error)',y=0.92)
+f.savefig(data_folder + '/'+'8_panel.png',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300,bbox_inches='tight')
