@@ -34,6 +34,9 @@ elif part_size == '10':
 elif part_size == '4':
     vlin=np.array([0.02,0.04,0.06,0.08])
 
+def ycoord(bounds,alpha):
+    return bounds[0]+alpha*(bounds[1]-bounds[0])
+    
 Dout = float(part_size)
 #from sys import argv
 #scriptname, part_size = argv

@@ -34,6 +34,13 @@ fr2lam = lambda f: c*1.e-9/f # expected GHz
 freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 part_size = '10'
 
+vlin=np.array([25,16,12.5])
+def ycoord(bounds,alpha):
+    return bounds[0]+alpha*(bounds[1]-bounds[0])
+
+def xcooadd(bounds,alpha):
+    return alpha*(bounds[1]-bounds[0])
+
 def get_line(lines,string):
     return [x for x in lines if string in x][0]
 
@@ -371,7 +378,13 @@ def plot_comparison(dda_data,mie_data,quantity,folder,ax=None):
             DFdda = dda_data[f]
             #lay_thick_dda = Dout*(1.0 - DFdda['Dratio'])
             ax.plot(1.0e6*DFdda['dipole_spacing'],DFdda[quantity].values,marker='.',linewidth=0)
-        ax.grid()
+        i=1
+        for vl in vlin:
+            vline2d = ax.axvline(vl,ls='--',c='k')
+            dataline = vline2d.get_data()
+            i = i+1
+            print(ax.get_ybound())
+            ax.text(1.05*dataline[0][0],ycoord(ax.get_ybound(),0.15),str(i))
 
 def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
     if ax is None:
@@ -424,6 +437,13 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
             DFdda = dda_data[f]
             DFmie = mie_data[f]
             ax.plot(1.0e6*DFmie['dipole_spacing'],100*(DFmie[quantity]-DFdda[quantity].values)/DFmie[quantity].values,label=f)
+        i=1
+        for vl in vlin:
+            vline2d = ax.axvline(vl,ls='--',c='k')
+            dataline = vline2d.get_data()
+            i = i+1
+            print(ax.get_ybound())
+            ax.text(1.05*dataline[0][0],0.95*ax.get_ybound()[0],str(i))
         ax.grid()
         #ax.set_ylim([-20,20])
 
@@ -472,5 +492,5 @@ ax8.set_ylabel('$\Delta$ g     [%]')
 ax8.set_xlabel('dipole spacing [um]')
 ax7.set_xlabel('dipole spacing [um]')
 f.suptitle('10mm sphere 50um water test jagged (resolution error)',y=0.92)
-f.savefig(data_folder + '/'+'8_panel.png',dpi=300,bbox_inches='tight')
-f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+'jagged8panel.png',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+'jagged8panel.pdf',dpi=300,bbox_inches='tight')

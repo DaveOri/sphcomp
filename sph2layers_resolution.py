@@ -27,9 +27,14 @@ fr2lam = lambda f: c*1.e-9/f # expected GHz
 freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 
 part_size = '10'
-#from sys import argv
-#scriptname, part_size = argv
 
+vlin=np.array([50,25,16,12.5])
+
+def ycoord(bounds,alpha):
+    return bounds[0]+alpha*(bounds[1]-bounds[0])
+def xcooadd(bounds,alpha):
+    return alpha*(bounds[1]-bounds[0])
+    
 def get_line(lines,string):
     return [x for x in lines if string in x][0]
 
@@ -361,7 +366,13 @@ def plot_comparison(dda_data,mie_data,quantity,folder,ax=None):
             DFdda = dda_data[f]
             #lay_thick_dda = Dout*(1.0 - DFdda['Dratio'])
             ax.plot(1.0e6*DFdda['dipole_spacing'],DFdda[quantity].values,marker='.',linewidth=0)
-        ax.grid()
+        i=0
+        for vl in vlin:
+            vline2d = ax.axvline(vl,ls='--',c='k')
+            dataline = vline2d.get_data()
+            i = i+1
+            print(ax.get_ybound())
+            ax.text(dataline[0][0]-xcooadd(ax.get_xbound(),0.05),ycoord(ax.get_ybound(),0.2),str(i))
 
 def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
     if ax is None:
@@ -413,7 +424,13 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
             DFdda = dda_data[f]
             DFmie = mie_data[f]
             ax.plot(1.0e6*DFmie['dipole_spacing'],100*(DFmie[quantity]-DFdda[quantity].values)/DFmie[quantity].values,label=f)
-        ax.grid()
+        i=0
+        for vl in vlin:
+            vline2d = ax.axvline(vl,ls='--',c='k')
+            dataline = vline2d.get_data()
+            i = i+1
+            print(ax.get_ybound())
+            ax.text(dataline[0][0]-xcooadd(ax.get_xbound(),0.05),ycoord(ax.get_ybound(),0.8),str(i))
         #ax.set_ylim([-20,20])
 
 plot_comparison(DDAdict,MIEdict,quantity='Qext',folder=data_folder)
@@ -449,7 +466,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=a
 plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax6)
 plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
 
-ax2.legend(ncol=5)
+ax2.legend(loc=4,ncol=1)
 ax1.set_ylabel('Q$_{sca}$')
 ax2.set_ylabel('$\Delta$Q$_{sca}$     [%]')
 ax3.set_ylabel('Q$_{abs}$')
@@ -463,5 +480,5 @@ ax7.set_xlabel('dipole spacing [um]')
 f.savefig(data_folder + '/'+'8_panel.png',dpi=300)
 f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300)
 f.suptitle('10mm sphere 50um water test resolution (resolution and shape error)',y=0.92)
-f.savefig(data_folder + '/'+'8_panel.png',dpi=300,bbox_inches='tight')
-f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+'resolution_8panel.png',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+'resolution_8panel.pdf',dpi=300,bbox_inches='tight')
