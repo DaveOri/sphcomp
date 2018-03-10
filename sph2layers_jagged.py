@@ -51,9 +51,9 @@ def get_log_numbers(logfilename):
     dpl = float(get_line(lines,'Dipoles/lambda:').split()[-1])
     #Dx,Dy,Dz = (get_line(lines,'box dimensions:').split()[-1]).split('x')
     jagged = get_line(lines,'-jagged')
-    if len(jagged):
-        jagged=int(jagged.split()[-2])
-        dpl = dpl*jagged
+    #if len(jagged):
+    #    jagged=int(jagged.split()[-2])
+    #    dpl = dpl*jagged
     Ndipoles = int(get_line(lines,'Total number of occupied dipoles:').split()[-1])
     N1 = int(get_line(lines,'  per domain: 1.').split()[-1])
     N2 = Ndipoles - N1 # this parsing will become a problem when 3 layers will be added
@@ -84,10 +84,14 @@ def Ampl2Mueller(S1,S2):
     P34 = (complex(0.5,0.5)*(S1*S2.conj()-S2*S1.conj())).real
     return P11, P12, P33, P34
 
-def plotMueller(angles,data,tags,title,figname):
+def plotMueller(angles,data,tags,title,figname,normalized=True):
     plt.figure()
     ax = plt.gca()
     for x,y,tag in zip(angles,data,tags):
+        if normalized:
+            cosx = np.cos(np.pi*x/180.0)
+            intP = -integrate.trapz(y,cosx)
+            y = y/intP
         ax.plot(x,y,label=tag)
     ax.legend()
     ax.grid()
@@ -320,23 +324,24 @@ for freq_str in freqs.keys():#[0:1]:
         plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
         #print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,MQe[0]/Qext,MQs[0]/Qsca,MQa[0]/Qabs,MQb[0]/Qbck,Mg[0]/g)
         
-#        try:
-#            print('intfield')
-#            intField = pd.read_csv(particle_folder+'/IntField-y.dat',sep=' ')
-#            plot_field(intField,savepath=particle_folder+'/',what='|E|^2',name='intensity',radius=inner_size*1000)
-#            plot_field(intField,savepath=particle_folder+'/',what='Ex.r',name='Exr',radius=inner_size*1000)
-#            plot_field(intField,savepath=particle_folder+'/',what='Ex.i',name='Exr',radius=inner_size*1000)
-#            plot_field(intField,savepath=particle_folder+'/',what='Ey.r',name='Eyr',radius=inner_size*1000)
-#            plot_field(intField,savepath=particle_folder+'/',what='Ey.i',name='Eyi',radius=inner_size*1000)
-#            plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
-#            plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
-#    
-#            print('fieldnalay')
-#            compute_plot_field_Mie(x,m,particle_folder,plane='X')
-#            compute_plot_field_Mie(x,m,particle_folder,plane='Y')
-#            compute_plot_field_Mie(x,m,particle_folder,plane='Z')
-#        except:
-#            pass
+        try:
+            print('intfield')
+            intField = pd.read_csv(particle_folder+'/IntField-y.dat',sep=' ')
+            plot_field(intField,savepath=particle_folder+'/',what='|E|^2',name='intensity',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ex.r',name='Exr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ex.i',name='Exr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ey.r',name='Eyr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ey.i',name='Eyi',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
+            plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
+    
+            print('fieldnalay')
+            compute_plot_field_Mie(x,m,particle_folder,plane='X')
+            compute_plot_field_Mie(x,m,particle_folder,plane='Y')
+            compute_plot_field_Mie(x,m,particle_folder,plane='Z')
+        except:
+            print('intfield failed')
+            pass
         #del intField, P11, P12, P33, P34, S1, S2, mueller, thetas
         print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         gc.collect()
@@ -384,7 +389,7 @@ def plot_comparison(dda_data,mie_data,quantity,folder,ax=None):
             dataline = vline2d.get_data()
             i = i+1
             print(ax.get_ybound())
-            ax.text(1.05*dataline[0][0],ycoord(ax.get_ybound(),0.15),str(i))
+            ax.text(dataline[0][0]-xcooadd(ax.get_xbound(),0.05),ycoord(ax.get_ybound(),0.2),str(i))
 
 def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
     if ax is None:
@@ -443,7 +448,7 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
             dataline = vline2d.get_data()
             i = i+1
             print(ax.get_ybound())
-            ax.text(1.05*dataline[0][0],0.95*ax.get_ybound()[0],str(i))
+            ax.text(dataline[0][0]-xcooadd(ax.get_xbound(),0.05),ycoord(ax.get_ybound(),0.9),str(i))
         ax.grid()
         #ax.set_ylim([-20,20])
 
@@ -480,7 +485,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=a
 plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax6)
 plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
 
-ax2.legend(ncol=1)
+ax2.legend(loc=4,ncol=1)
 ax1.set_ylabel('Q$_{sca}$')
 ax2.set_ylabel('$\Delta$Q$_{sca}$     [%]')
 ax3.set_ylabel('Q$_{abs}$')

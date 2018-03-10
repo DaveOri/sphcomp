@@ -5,6 +5,8 @@ Created on Tue Feb 27 18:59:22 2018
 @author: dori
 """
 
+polarization='Y'
+
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
@@ -277,7 +279,7 @@ for freq_str in freqs.keys():#[0:1]:
         lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2 = get_log_numbers(logfilename)
         print(lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2)
 
-        CrossSecFileName = particle_folder+'/CrossSec-Y'
+        CrossSecFileName = particle_folder+'/CrossSec-'+polarization
         Cext, Qext, Csca, Qsca, Cabs, Qabs, area = get_cross_sections(CrossSecFileName)
 
         back = mueller.loc[180]
@@ -301,7 +303,8 @@ for freq_str in freqs.keys():#[0:1]:
         print(x)
         print(m)
         thetas = deg2rad(mueller.index.values)
-        g = moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,1)/moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,0)
+        muell = mueller.loc[0:180]
+        g = moment(np.cos(deg2rad(muell.index.values)),muell.s11.values,1)/moment(np.cos(deg2rad(muell.index.values)),muell.s11.values,0)
         DDA.loc[i] = inner_size/outer_size, Qext, Qabs, Qsca, Qbck, g, Qsca/Qext, dda_d
         
         terms, MQe, MQs, MQa, MQb, MQp, Mg, Mssa, S1, S2 = scattnlay(x,m,theta=thetas)
@@ -326,7 +329,7 @@ def plot_comparison(dda_data,mie_data,quantity,folder,ax=None):
     if ax is None:
         plt.figure()
         ax = plt.gca()
-        figname = folder + '/' + quantity + 'relative_diff.png'
+        figname = folder + '/'+polarization + quantity + 'relative_diff.png'
         for f in dda_data.keys():
             DFdda = dda_data[f]
             #DFmie = mie_data[f]
@@ -358,7 +361,7 @@ def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
     if ax is None:
         plt.figure()
         ax = plt.gca()
-        figname = folder + '/' + quantity + 'diff.png'
+        figname = folder + '/'+polarization + quantity + 'diff.png'
         for f in dda_data.keys():
             DFdda = dda_data[f]
             DFmie = mie_data[f]
@@ -385,7 +388,7 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
     if ax is None:
         plt.figure()
         ax = plt.gca()
-        figname = folder + '/' + quantity + 'relative_diff.png'
+        figname = folder + '/'+polarization + quantity + 'relative_diff.png'
         for f in dda_data.keys():
             print(f)
             DFdda = dda_data[f]
@@ -453,5 +456,5 @@ ax8.set_ylabel('$\Delta$ g     [%]')
 ax8.set_xlabel('dipole spacing [um]')
 ax7.set_xlabel('dipole spacing [um]')
 f.suptitle('5.7 mm 10% melted aggregate',y=0.92)
-f.savefig(data_folder + '/'+'8_panel.png',dpi=300,bbox_inches='tight')
-f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+polarization+'8_panel.png',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+polarization+'8_panel.pdf',dpi=300,bbox_inches='tight')
