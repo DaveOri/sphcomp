@@ -10,8 +10,6 @@ import resource
 sys.path.append('/work/DBs/scattnlay')
 from scattnlay import scattnlay
 from scattnlay import fieldnlay
-#sys.path.append('/home/dori/pymiecoated')
-#from pymiecoated import Mie
 
 import matplotlib as mpl
 from cycler import cycler
@@ -27,6 +25,7 @@ fr2lam = lambda f: c*1.e-9/f # expected GHz
 freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 
 part_size = '10'
+mfrac='0_99'
 
 vlin=np.array([50,25,16,12.5])
 
@@ -72,20 +71,30 @@ def Ampl2Mueller(S1,S2):
     P34 = (complex(0.5,0.5)*(S1*S2.conj()-S2*S1.conj())).real
     return P11, P12, P33, P34
 
-def plotMueller(angles,data,tags,title,figname):
-    plt.figure()
-    ax = plt.gca()
+def plotMueller(angles,data,tags,title,figname=None,normalized=False,logscale=False,ax=None):
+    save = False
+    if ax is None:
+        plt.figure()
+        ax = plt.gca()
+        save = True
     for x,y,tag in zip(angles,data,tags):
+        if normalized:
+            cosx = np.cos(np.pi*x/180.0)
+            intP = -integrate.trapz(y,cosx)
+            y = y/intP
         ax.plot(x,y,label=tag)
-    ax.legend()
-    ax.grid()
-    ax.set_title(title)
-    ax.set_xlabel('Scattering angle')
-    ax.set_ylabel(title)
-    ax.legend()
-    plt.savefig(figname,dpi=300)
-    plt.close()
-    plt.clf()
+    if logscale:
+        ax.set_yscale('log')
+    if save:
+        ax.legend()
+        ax.grid()
+        ax.set_title(title)
+        ax.set_xlabel('Scattering angle')
+        ax.set_ylabel(title)
+        plt.tight_layout()
+        plt.savefig(figname,dpi=300)
+        plt.close()
+        plt.clf()
 
 deg2rad = lambda angles: np.pi*angles/180.0
 rad2deg = lambda angles: 180.0*angles/np.pi
@@ -250,7 +259,10 @@ def compute_plot_field_Mie(x,m,folder,plane='X'):
 MIEdict = OrderedDict()
 DDAdict = OrderedDict()
 
-data_folder = '/data/optimice/scattering_databases/melting_sphere/test_resolution/'+str(part_size)+'mm/0_99'
+Pdda = OrderedDict()
+Pmie = OrderedDict()
+
+data_folder = '/data/optimice/scattering_databases/melting_sphere/test_resolution/'+str(part_size)+'mm/'+mfrac
 for freq_str in freqs.keys():#[0:1]:
     f = freqs[freq_str]
     lam = fr2lam(f)
@@ -262,6 +274,9 @@ for freq_str in freqs.keys():#[0:1]:
     plt.plot()
     ax = plt.gca()
 
+    P11dda = pd.DataFrame(index=np.linspace(0.0,180.0,721),columns=np.arange(1,len(particles_folders)+1,1))
+    P11mie = pd.DataFrame(index=np.linspace(0.0,180.0,721),columns=np.arange(1,len(particles_folders)+1,1))
+
     particles_folders = sorted(particles_folders)#[0:10] ##
     for particle_folder,i in zip(particles_folders,range(len(particles_folders))):
         print(particle_folder)
@@ -270,7 +285,7 @@ for freq_str in freqs.keys():#[0:1]:
 
         logfilename = particle_folder+'/log'
         lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2 = get_log_numbers(logfilename)
-        print(lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2)
+        #print(lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2)
 
         CrossSecFileName = particle_folder+'/CrossSec-Y'
         Cext, Qext, Csca, Qsca, Cabs, Qabs, area = get_cross_sections(CrossSecFileName)
@@ -285,16 +300,19 @@ for freq_str in freqs.keys():#[0:1]:
         x = np.ndarray((Ncomput,Nlayers),dtype=np.float64)
         m = np.ndarray((Ncomput,Nlayers),dtype=np.complex128)
         
-        outer_size = dda_d*np.cbrt((6.0*Ndipoles/np.pi))*0.5 
+        outer_size = 0.5*0.001*float(part_size)
+        #outer_size=dda_d*np.cbrt((6.0*Ndipoles/np.pi))*0.5 
         outer_x = size2x(outer_size,lam_dda)
-        inner_size = dda_d*np.cbrt((6.0*N2/np.pi))*0.5
+        inner_size = outer_size*float(mfrac[2:])*0.01
+        #inner_size=dda_d*np.cbrt((6.0*N2/np.pi))*0.5
         inner_x = size2x(inner_size,lam_dda)
+        print(outer_size,inner_size)
         x[:,0] = inner_x
         x[:,1] = outer_x
         m[:,0] = n2
         m[:,1] = n1
-        print(x)
-        print(m)
+        #print(x)
+        #print(m)
         thetas = deg2rad(mueller.index.values)
         g = moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,1)/moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,0)
         DDA.loc[i] = inner_size/outer_size, Qext, Qabs, Qsca, Qbck, g, Qsca/Qext, dda_d
@@ -302,12 +320,13 @@ for freq_str in freqs.keys():#[0:1]:
         terms, MQe, MQs, MQa, MQb, MQp, Mg, Mssa, S1, S2 = scattnlay(x,m,theta=thetas)
         MIE.loc[i] = inner_size/outer_size, MQe[0], MQa[0], MQs[0], MQb[0], Mg[0], Mssa[0], dda_d
         P11, P12, P33, P34 = Ampl2Mueller(S1[0],S2[0])
-        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
+        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png',logscale=True)
         plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
         plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
         plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
         #print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,MQe[0]/Qext,MQs[0]/Qsca,MQa[0]/Qabs,MQb[0]/Qbck,Mg[0]/g)
-        
+        P11dda.loc[:,i+1] = mueller.s11
+        P11mie.loc[:,i+1] = P11
 #        try:
 #            print('intfield')
 #            intField = pd.read_csv(particle_folder+'/IntField-y.dat',sep=' ')
@@ -324,6 +343,7 @@ for freq_str in freqs.keys():#[0:1]:
 #            compute_plot_field_Mie(x,m,particle_folder,plane='Y')
 #            compute_plot_field_Mie(x,m,particle_folder,plane='Z')
 #        except:
+#            print('cannot do internal fields')
 #            pass
         #del intField, P11, P12, P33, P34, S1, S2, mueller, thetas
         print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -333,6 +353,8 @@ for freq_str in freqs.keys():#[0:1]:
     MIE.sort_values('dipole_spacing',inplace=True)
     DDAdict[freq_str] = DDA
     MIEdict[freq_str] = MIE
+    Pdda[freq_str] = P11dda
+    Pmie[freq_str] = P11mie
 
 #%%
 
@@ -373,6 +395,7 @@ def plot_comparison(dda_data,mie_data,quantity,folder,ax=None):
             i = i+1
             print(ax.get_ybound())
             ax.text(dataline[0][0]-xcooadd(ax.get_xbound(),0.05),ycoord(ax.get_ybound(),0.2),str(i))
+        ax.grid()
 
 def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
     if ax is None:
@@ -397,8 +420,14 @@ def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
             DFdda = dda_data[f]
             DFmie = mie_data[f]
             ax.plot(1.0e6*DFmie['dipole_spacing'],(DFmie[quantity]-DFdda[quantity].values),label=f)
-            ax.grid()
-
+        i = 0
+        for vl in vlin:
+                    vline2d = ax.axvline(vl,ls='--',c='k')
+                    dataline = vline2d.get_data()
+                    i = i+1
+                    print(ax.get_ybound())
+                    ax.text(dataline[0][0]-xcooadd(ax.get_xbound(),0.05),ycoord(ax.get_ybound(),0.2),str(i))
+        ax.grid()
 
     
 def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
@@ -431,7 +460,7 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
             i = i+1
             print(ax.get_ybound())
             ax.text(dataline[0][0]-xcooadd(ax.get_xbound(),0.05),ycoord(ax.get_ybound(),0.8),str(i))
-        #ax.set_ylim([-20,20])
+        ax.grid()
 
 plot_comparison(DDAdict,MIEdict,quantity='Qext',folder=data_folder)
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder)
@@ -464,21 +493,53 @@ plot_comparison(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax7)
 plot_relative_difference(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax2)
 plot_relative_difference(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax4)
 plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax6)
-plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
+plot_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
 
 ax2.legend(loc=4,ncol=1)
 ax1.set_ylabel('Q$_{sca}$')
-ax2.set_ylabel('$\Delta$Q$_{sca}$     [%]')
+ax2.set_ylabel('$\Delta$Q$_{sca}$/$Q_{sca}^{mie}$     [%]')
 ax3.set_ylabel('Q$_{abs}$')
-ax4.set_ylabel('$\Delta$Q$_{abs}$     [%]')
+ax4.set_ylabel('$\Delta$Q$_{abs}$/$Q_{sca}^{mie}$     [%]')
 ax5.set_ylabel('Q$_{bk}$')
-ax6.set_ylabel('$\Delta$Q$_{bk}$     [%]')
+ax6.set_ylabel('$\Delta$Q$_{bk}$/$Q_{sca}^{mie}$      [%]',labelpad=0)
 ax7.set_ylabel('g')
-ax8.set_ylabel('$\Delta$ g     [%]')
+ax8.set_ylabel('$\Delta$ g')
 ax8.set_xlabel('dipole spacing [um]')
 ax7.set_xlabel('dipole spacing [um]')
 f.savefig(data_folder + '/'+'8_panel.png',dpi=300)
 f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300)
-f.suptitle('10mm sphere 50um water test resolution (resolution and shape error)',y=0.92)
+f.suptitle('10mm sphere 50um water test resolution (discretization and shape error)',y=0.999999)
+f.tight_layout()
 f.savefig(data_folder + '/'+'resolution_8panel.png',dpi=300,bbox_inches='tight')
 f.savefig(data_folder + '/'+'resolution_8panel.pdf',dpi=300,bbox_inches='tight')
+
+def plot_phase3(ax,MIE,DDA,band,op='='):
+    angles = MIE[band].index.values
+    mie = MIE[band].loc[:,1].values
+    coarse = DDA[band].loc[:,3].values
+    refined = DDA[band].loc[:,1].values
+    if op == '=':
+        plotMueller(angles=[angles,angles,angles],
+                    data=[mie,coarse,refined],logscale=True,
+                    tags=['MIE','DDA coarse','DDA refined'], title='P11',ax=ax)
+    elif op == '-':
+        plotMueller(angles=[angles,angles,angles],#logscale=True,
+                    #data=[abs(mie-coarse),abs(mie-refined),abs(coarse-refined)],
+                    data=[(mie-coarse)/mie,(mie-refined)/mie,(coarse-refined)/mie],
+                    tags=['total','shape','discretization'], title='error',ax=ax)
+
+
+#f, ((ax11,ax12),(ax21,ax22),(ax31,ax32),(ax41,ax42),(ax51,ax52)) = plt.subplots(5,2,sharex=True,figsize=(9.5,9.5))
+f, ((ax11,ax12),(ax21,ax22),(ax31,ax32)) = plt.subplots(3,2,sharex=True,figsize=(9.5,9.5))
+plot_phase3(ax11,Pmie,Pdda,'X','=')
+plot_phase3(ax21,Pmie,Pdda,'Ku','=')
+plot_phase3(ax31,Pmie,Pdda,'Ka','=')
+#plot_phase3(ax41,Pmie,Pdda,'W','=')
+#plot_phase3(ax51,Pmie,Pdda,'G','=')
+plot_phase3(ax12,Pmie,Pdda,'X','-')
+plot_phase3(ax22,Pmie,Pdda,'Ku','-')
+plot_phase3(ax32,Pmie,Pdda,'Ka','-')
+#plot_phase3(ax42,Pmie,Pdda,'W','-')
+#plot_phase3(ax52,Pmie,Pdda,'G','-')
+ax11.legend()
+ax12.legend()

@@ -8,6 +8,9 @@ Created on Tue Feb 20 11:46:45 2018
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.gridspec as gridspec
+
+plt.close('all')
 
 size = 1.0 # size of the domain
 cx = cy = size*0.5
@@ -15,7 +18,16 @@ Dratio = 0.6
 insize = Dratio*size
 
 #fig, ax = plt.subplots(figsize=(6,6))
-fig, (ax1,ax2,ax3) = plt.subplots(1,3,figsize=(10,6))
+#fig, (ax1,ax2,ax3) = plt.subplots(1,3,figsize=(10,6))
+fig = plt.figure(figsize=(20,6))
+gs = gridspec.GridSpec(2,12)
+axa = plt.subplot(gs[0,0:3]) #plt.subplot(241)
+axb = plt.subplot(gs[0,3:6])#plt.subplot(242)
+axc = plt.subplot(gs[0,6:9])#plt.subplot(243)
+axd = plt.subplot(gs[0,9:12])#plt.subplot(244)
+ax1 = plt.subplot(gs[1,0:4])#plt.subplot(234)
+ax2 = plt.subplot(gs[1,4:8])#plt.subplot(235)
+ax3 = plt.subplot(gs[1,8:12])#plt.subplot(236)
 outcircle = plt.Circle((cx,cy),size*0.5,color='k', fill=False)
 incircle = plt.Circle((cx,cy),insize*0.5,color='k', fill=False)
 
@@ -137,6 +149,31 @@ if resolved-1:
 ax1.set_xlabel('original')
 ax2.set_xlabel('half dipole length')
 ax3.set_xlabel('double resolution')
-fig.tight_layout()
-fig.savefig('grid_refinement.pdf',bbox_inches='tight')
-fig.savefig('grid_refinement.png',dpi=300,bbox_inches='tight')
+
+size = 1.0
+melt_fracs = np.arange(0.2,1.0,0.2)
+cx = cy = size*0.5
+
+axes = [axa,axb,axc,axd]
+
+for mf,ax in zip(melt_fracs,axes):
+    fr = 1-mf
+    insize = size*fr**(1.0/3.0)
+    outcircle = plt.Circle((cx,cy),size*0.5,color='xkcd:azure', fill=True,alpha=0.7)
+    incircle = plt.Circle((cx,cy),insize*0.5,color='xkcd:blue grey', fill=True)
+    ax.add_artist(outcircle)
+    ax.add_artist(incircle)
+    outring = plt.Circle((cx,cy),size*0.5,color='k', fill=False)
+    inring = plt.Circle((cx,cy),insize*0.5,color='k', fill=False)
+    ax.add_artist(outring)
+    ax.add_artist(inring)
+    ax.set_xlabel('f='+str(mf))
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_aspect(1.0)
+ax1.text(0.05,0.9,'a)',fontweight='bold')
+ax2.text(0.05,0.9,'b)',fontweight='bold')
+ax3.text(0.05,0.9,'c)',fontweight='bold')
+gs.tight_layout(fig,rect=[0.5,0.0,1.0,1.0], h_pad=0.1)
+fig.savefig('combo_grid_refinement.pdf',bbox_inches='tight')
+fig.savefig('combo_grid_refinement.png',dpi=600,bbox_inches='tight')

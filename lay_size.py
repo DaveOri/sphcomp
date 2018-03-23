@@ -31,7 +31,7 @@ fr2lam = lambda f: c*1.e-6/f # expected GHz returns mm
 
 freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 thickness=np.array([0.0,0.001,0.01,0.05,0.1])
-sizes = np.linspace(2,20,1000)
+sizes = np.linspace(2.5,20,100)
 
 temp = 273.15
 Ncomput = len(sizes)#1
@@ -100,7 +100,7 @@ for fk in freqs.keys():
     i = i+1
 
 i = 0
-ratios = np.array([0.99,0.95,0.90,0.85,0.80])
+ratios = np.array([0.99,0.95,0.90,0.85,0.80,0.6,0.4,0.2,0.1])
 for fk in freqs.keys():
     #f,ax = plt.subplots(1,1)
     ax = axs[2][i]

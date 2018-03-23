@@ -26,7 +26,7 @@ fr2lam = lambda f: c*1.e-9/f # expected GHz
 #freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
 freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 
-part_size = '4'
+part_size = '10'
 if part_size == '20':
     vlin=np.array([0.02,0.04,0.06,0.08])
 elif part_size == '10':
@@ -307,11 +307,11 @@ for freq_str in freqs.keys():#[0:1]:
         
         terms, MQe, MQs, MQa, MQb, MQp, Mg, Mssa, S1, S2 = scattnlay(x,m,theta=thetas)
         MIE.loc[i] = inner_size/outer_size, MQe[0], MQa[0], MQs[0], MQb[0], Mg[0], Mssa[0]
-        #P11, P12, P33, P34 = Ampl2Mueller(S1[0],S2[0])
-        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
-        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
-        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
-        #plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
+        P11, P12, P33, P34 = Ampl2Mueller(S1[0],S2[0])
+        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s11.values,P11],tags=['DDA','MIE'],title='P11',figname=particle_folder+'/P11.png')
+        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s12.values,P12],tags=['DDA','MIE'],title='P12',figname=particle_folder+'/P12.png')
+        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s33.values,P33],tags=['DDA','MIE'],title='P33',figname=particle_folder+'/P33.png')
+        plotMueller(angles=[mueller.index.values,rad2deg(thetas)],data=[mueller.s34.values,P34],tags=['DDA','MIE'],title='P34',figname=particle_folder+'/P34.png')
         #print(inner_size/outer_size,(outer_size-inner_size)*1.0e6,MQe[0]/Qext,MQs[0]/Qsca,MQa[0]/Qabs,MQb[0]/Qbck,Mg[0]/g)
         
 #        try:
@@ -324,17 +324,13 @@ for freq_str in freqs.keys():#[0:1]:
 #            plot_field(intField,savepath=particle_folder+'/',what='Ey.i',name='Eyi',radius=inner_size*1000)
 #            plot_field(intField,savepath=particle_folder+'/',what='Ez.r',name='Ezr',radius=inner_size*1000)
 #            plot_field(intField,savepath=particle_folder+'/',what='Ez.i',name='Ezi',radius=inner_size*1000)
-#    
 #            print('fieldnalay')
 #            compute_plot_field_Mie(x,m,particle_folder,plane='X')
 #            compute_plot_field_Mie(x,m,particle_folder,plane='Y')
 #            compute_plot_field_Mie(x,m,particle_folder,plane='Z')
 #        except:
+#            print('not computing internal fields')
 #            pass
-        #del intField, P11, P12, P33, P34, S1, S2, mueller, thetas
-        print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-        gc.collect()
-        print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     DDA.sort_values('Dratio',inplace=True)
     MIE.sort_values('Dratio',inplace=True)
     DDAdict[freq_str] = DDA[0:-1]
@@ -406,8 +402,14 @@ def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
             DFmie = mie_data[f]
             lay_thick = 0.5*Dout*(1 - DFmie['Dratio'])
             ax.semilogx(lay_thick,(DFmie[quantity]-DFdda[quantity].values),label=f)
+        i = 0
+        #ax.set_ylim([-50,50])
         for vl in vlin:
-            ax.axvline(vl,ls='--',c='k')
+                    vline2d = ax.axvline(vl,ls='--',c='k')
+                    dataline = vline2d.get_data()
+                    i = i+1
+                    print(ax.get_ybound())
+                    ax.text(1.05*dataline[0][0],0.8*ax.get_ybound()[1],str(i))
         ax.grid()
         
 def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
@@ -437,7 +439,6 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
             lay_thick = 0.5*Dout*(1 - DFmie['Dratio'])
             ax.semilogx(lay_thick,100*(DFmie[quantity]-DFdda[quantity].values)/DFmie[quantity].values,label=f)
         i = 0
-        print(ax.get_ybound())
         ax.set_ylim([-50,50])
         for vl in vlin:
                     vline2d = ax.axvline(vl,ls='--',c='k')
@@ -478,19 +479,20 @@ plot_comparison(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax7)
 plot_relative_difference(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax2)
 plot_relative_difference(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax4)
 plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax6)
-plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
+plot_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
 
 ax2.legend(loc=1,ncol=1)
 ax1.set_ylabel('Q$_{sca}$')
-ax2.set_ylabel('$\Delta$Q$_{sca}$     [%]')
+ax2.set_ylabel('$\Delta$Q$_{sca}$/$Q_{sca}^{mie}$     [%]')
 ax3.set_ylabel('Q$_{abs}$')
-ax4.set_ylabel('$\Delta$Q$_{abs}$     [%]')
+ax4.set_ylabel('$\Delta$Q$_{abs}$/$Q_{abs}^{mie}$     [%]')
 ax5.set_ylabel('Q$_{bk}$')
-ax6.set_ylabel('$\Delta$Q$_{bk}$     [%]')
+ax6.set_ylabel('$\Delta$Q$_{bk}$/$Q_{bk}^{mie}$     [%]')
 ax7.set_ylabel('g')
-ax8.set_ylabel('$\Delta$ g     [%]')
+ax8.set_ylabel('$\Delta$ g')
 ax8.set_xlabel('Water layer thickness [mm]')
 ax7.set_xlabel('Water layer thickness [mm]')
-f.suptitle(part_size+'mm sphere variable water layer thickness',y=0.92)
+f.suptitle(part_size+'mm sphere variable water layer thickness',y=0.99999)
+f.tight_layout(w_pad=0.1,h_pad=0.2)
 f.savefig(data_folder + '/'+'8_panel.png',dpi=300,bbox_inches='tight')
 f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300,bbox_inches='tight')

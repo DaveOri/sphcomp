@@ -20,7 +20,7 @@ wavenumbers = 2.0*np.pi/wavelenghts
 ni = refractive.ice.n(temp,frequencies)
 nw = refractive.water.n(temp,frequencies)
 
-ds = 1.0e-6*np.array([10,20,30,40])
+ds = 1.0e-6*np.array([10,20,30,40,50])
 f, (ax1) = plt.subplots(1,1)
 ax1t = ax1.twinx()
 for d in ds:

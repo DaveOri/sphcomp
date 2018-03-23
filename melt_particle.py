@@ -5,7 +5,7 @@ Created on Tue Feb 27 18:59:22 2018
 @author: dori
 """
 
-polarization='Y'
+polarization='X'
 
 import numpy as np
 import sys
@@ -257,7 +257,7 @@ def compute_plot_field_Mie(x,m,folder,plane='X'):
 MIEdict = OrderedDict()
 DDAdict = OrderedDict()
 
-data_folder = '/data/optimice/scattering_databases/melting_sphere/melting_snow/5700/'
+data_folder = '/data/optimice/scattering_databases/melting_sphere/melting_snow/4100/'
 for freq_str in freqs.keys():#[0:1]:
     f = freqs[freq_str]
     lam = fr2lam(f)
@@ -354,7 +354,7 @@ def plot_comparison(dda_data,mie_data,quantity,folder,ax=None):
         for f in dda_data.keys():
             DFdda = dda_data[f]
             #lay_thick_dda = Dout*(1.0 - DFdda['Dratio'])
-            ax.plot(1.0e6*DFdda['dipole_spacing'],DFdda[quantity].values,label=f)
+            ax.plot(1.0e6*DFdda['dipole_spacing'],DFdda[quantity].values,label=f,marker='h')
         ax.grid()
 
 def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
@@ -379,8 +379,8 @@ def plot_difference(dda_data,mie_data,quantity,folder,ax=None):
         for f in dda_data.keys():
             DFdda = dda_data[f]
             DFmie = mie_data[f]
-            ax.plot(1.0e6*DFmie['dipole_spacing'],(DFmie[quantity]-DFdda[quantity].values),label=f)
-            ax.grid()
+            ax.plot(1.0e6*DFmie['dipole_spacing'],DFdda.iloc[-1][quantity]-DFdda[quantity],label=f,marker='h')
+        ax.grid()
 
 
     
@@ -407,7 +407,7 @@ def plot_relative_difference(dda_data,mie_data,quantity,folder,ax=None):
         for f in dda_data.keys():
             DFdda = dda_data[f]
             DFmie = mie_data[f]
-            ax.plot(1.0e6*DFdda['dipole_spacing'],100*(DFdda.iloc[-1][quantity]-DFdda[quantity])/DFdda.iloc[-1][quantity],label=f)
+            ax.plot(1.0e6*DFdda['dipole_spacing'],100*(DFdda.iloc[-1][quantity]-DFdda[quantity])/DFdda.iloc[-1][quantity],label=f,marker='h')
         ax.grid()
         #ax.set_ylim([-20,20])
 
@@ -442,19 +442,20 @@ plot_comparison(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax7)
 plot_relative_difference(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax2)
 plot_relative_difference(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax4)
 plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax6)
-plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
+plot_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
 
 ax2.legend(ncol=1)
 ax1.set_ylabel('Q$_{sca}$')
-ax2.set_ylabel('$\Delta$Q$_{sca}$     [%]')
+ax2.set_ylabel('$\Delta$Q$_{sca}$/$Q_{sca}^{20\mu m}$     [%]')
 ax3.set_ylabel('Q$_{abs}$')
-ax4.set_ylabel('$\Delta$Q$_{abs}$     [%]')
+ax4.set_ylabel('$\Delta$Q$_{abs}$/$Q_{abs}^{20\mu m}$      [%]')
 ax5.set_ylabel('Q$_{bk}$')
-ax6.set_ylabel('$\Delta$Q$_{bk}$     [%]')
+ax6.set_ylabel('$\Delta$Q$_{bk}$/$Q_{bk}^{20\mu m}$      [%]')
 ax7.set_ylabel('g')
-ax8.set_ylabel('$\Delta$ g     [%]')
+ax8.set_ylabel('$\Delta$ g')
 ax8.set_xlabel('dipole spacing [um]')
 ax7.set_xlabel('dipole spacing [um]')
-f.suptitle('5.7 mm 10% melted aggregate',y=0.92)
+f.suptitle('4.1 mm 10% melted aggregate',y=0.9999999)
+f.tight_layout()
 f.savefig(data_folder + '/'+polarization+'8_panel.png',dpi=300,bbox_inches='tight')
 f.savefig(data_folder + '/'+polarization+'8_panel.pdf',dpi=300,bbox_inches='tight')
