@@ -9,6 +9,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.gridspec as gridspec
+import matplotlib.colors as clrs
+
+from mpl_toolkits.mplot3d import Axes3D
 
 plt.close('all')
 
@@ -19,8 +22,12 @@ insize = Dratio*size
 
 #fig, ax = plt.subplots(figsize=(6,6))
 #fig, (ax1,ax2,ax3) = plt.subplots(1,3,figsize=(10,6))
-fig = plt.figure(figsize=(20,6))
-gs = gridspec.GridSpec(2,12)
+
+#fig = plt.figure(figsize=(20,6))
+#gs = gridspec.GridSpec(2,12)
+fig = plt.figure(figsize=(20,9))
+gs = gridspec.GridSpec(3,12)
+
 axa = plt.subplot(gs[0,0:3]) #plt.subplot(241)
 axb = plt.subplot(gs[0,3:6])#plt.subplot(242)
 axc = plt.subplot(gs[0,6:9])#plt.subplot(243)
@@ -28,6 +35,11 @@ axd = plt.subplot(gs[0,9:12])#plt.subplot(244)
 ax1 = plt.subplot(gs[1,0:4])#plt.subplot(234)
 ax2 = plt.subplot(gs[1,4:8])#plt.subplot(235)
 ax3 = plt.subplot(gs[1,8:12])#plt.subplot(236)
+axm1= plt.subplot(gs[2,0:6],projection='3d')
+#axm1.set_aspect('equal')
+axm2= plt.subplot(gs[2,6:12],projection='3d')
+#axm2.set_aspect('equal')
+
 outcircle = plt.Circle((cx,cy),size*0.5,color='k', fill=False)
 incircle = plt.Circle((cx,cy),insize*0.5,color='k', fill=False)
 
@@ -174,6 +186,94 @@ for mf,ax in zip(melt_fracs,axes):
 ax1.text(0.05,0.9,'a)',fontweight='bold')
 ax2.text(0.05,0.9,'b)',fontweight='bold')
 ax3.text(0.05,0.9,'c)',fontweight='bold')
+
+#axm1.set_aspect(1.0)
+#axm2.set_aspect(1.0)
+
+import sys
+sys.path.append('/work/DBs/scattDB/scattDB/')
+import shape
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+def cuboid_data(o, size=(1,1,1)):
+    X = [[[0, 1, 0], [0, 0, 0], [1, 0, 0], [1, 1, 0]],
+         [[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0]],
+         [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]],
+         [[0, 0, 1], [0, 0, 0], [0, 1, 0], [0, 1, 1]],
+         [[0, 1, 0], [0, 1, 1], [1, 1, 1], [1, 1, 0]],
+         [[0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]]
+    X = np.array(X).astype(float)
+    for i in range(3):
+        X[:,:,i] *= size[i]
+    X += np.array(o)
+    return X
+
+def plotCubeAt(positions,sizes=None,colors=None, **kwargs):
+    if not isinstance(colors,(list,np.ndarray)): colors=["C0"]*len(positions)
+    if not isinstance(sizes,(list,np.ndarray)): sizes=[(1,1,1)]*len(positions)
+    g = []
+    for p,s,c in zip(positions,sizes,colors):
+        g.append( cuboid_data(p, size=s) )
+    return Poly3DCollection(np.concatenate(g),  
+                            facecolors=np.repeat(colors,6, axis=0), **kwargs)
+
+iceshape = shape.shp1200.shape[shape.shp1200.shape['CX']==1]
+meltshape = shape.shp1200.shape[shape.shp1200.shape['CX']==2]
+
+xs = iceshape.X.values
+ys = iceshape.Y.values
+zs = iceshape.Z.values
+
+grey = clrs.to_rgb('xkcd:bluegrey')
+azure = clrs.to_rgb('xkcd:electric blue')
+
+positions = np.c_[xs,ys,zs]
+pc11 = plotCubeAt(positions, colors=np.tile(grey,(len(xs),1)))
+axm1.add_collection3d(pc11)
+pc12 = plotCubeAt(positions, colors=np.tile(grey,(len(xs),1)),edgecolor='k')
+axm2.add_collection3d(pc12)
+
+xs = meltshape.X.values
+ys = meltshape.Y.values
+zs = meltshape.Z.values
+positions = np.c_[xs,ys,zs]
+pc21 = plotCubeAt(positions, colors=np.tile(azure,(len(xs),1)))
+axm1.add_collection3d(pc21)
+pc22 = plotCubeAt(positions, colors=np.tile(azure,(len(xs),1)),edgecolor='k')
+axm2.add_collection3d(pc22)
+
+axm1.view_init(30,55)
+axm2.view_init(30,55)
+axm1.set_xlim([xs.min(),xs.max()])
+axm1.set_ylim([ys.min(),ys.max()])
+axm1.set_zlim([zs.min(),zs.max()])
+axm2.set_xlim([xs.min(),xs.max()])
+axm2.set_ylim([ys.min(),ys.max()])
+axm2.set_zlim([zs.min(),zs.max()])
+
+axm2.set_xlim([-10,0])
+axm2.set_ylim([10,20])
+axm2.set_zlim([-20,-10])
+
+Rect = plt.Rectangle((1,1),1,1)
+axm1.add_artist(Rect)
+
+axm2.axis('off')
+axm1.axis('off')
+#axm1.set_xlabel('X')
+#axm1.set_xticks([])
+#axm1.set_yticks([])
+#axm1.set_zticks([])
+#axm2.set_xticks([])
+#axm2.set_yticks([])
+#axm2.set_zticks([])
+
 gs.tight_layout(fig,rect=[0.5,0.0,1.0,1.0], h_pad=0.1)
+last = fig.add_axes([0.64,0.1,0.05,0.05])
+last.axis('off')
+last.add_patch(patches.Rectangle((0,0),1,1,fill=False,edgecolor='red',facecolor='none',linewidth=6))
+#last.plot((0,1),(0,1),'r')
+#last.patch.set_alpha(0)
+
 fig.savefig('combo_grid_refinement.pdf',bbox_inches='tight')
 fig.savefig('combo_grid_refinement.png',dpi=600,bbox_inches='tight')
