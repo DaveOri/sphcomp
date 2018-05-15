@@ -25,7 +25,7 @@ insize = Dratio*size
 
 #fig = plt.figure(figsize=(20,6))
 #gs = gridspec.GridSpec(2,12)
-fig = plt.figure(figsize=(20,9))
+fig = plt.figure(figsize=(15,6.75)) #20,9
 gs = gridspec.GridSpec(3,12)
 
 axa = plt.subplot(gs[0,0:3]) #plt.subplot(241)
@@ -58,14 +58,15 @@ ptsx = ptsx.flatten()
 ptsy = ptsy.flatten()
 rad2 = ((ptsx-cx)**2+(ptsy-cy)**2)
 
+s=8
 if 1:#not (resolved-1 or jagged-1):
     rboolin = (rad2 < (0.5*insize)**2)
     ptinx, ptiny = ptsx[rboolin],ptsy[rboolin]
-    ax1.scatter(ptinx,ptiny,c='xkcd:blue grey')
+    ax1.scatter(ptinx,ptiny,c='xkcd:blue grey',s=s)
     
     rboolout = (rad2 < (0.5*size)**2) * (rad2 > (0.5*insize)**2)
     ptoutx, ptouty = ptsx[rboolout],ptsy[rboolout]
-    ax1.scatter(ptoutx,ptouty,c='xkcd:electric blue')
+    ax1.scatter(ptoutx,ptouty,c='xkcd:electric blue',s=s)
     for x,y in zip(ptinx,ptiny):
         p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:blue grey')
         ax1.add_patch(p)
@@ -81,7 +82,7 @@ if 1:#not (resolved-1 or jagged-1):
     ax1.set_aspect(1.0)
     #fig.savefig('grid_layered.pdf',bbox_inches='tight')
     #fig.savefig('grid_layered.png',dpi=300,bbox_inches='tight')
-
+s=4
 if jagged-1:
     outcircle = plt.Circle((cx,cy),size*0.5,color='k', fill=False)
     incircle = plt.Circle((cx,cy),insize*0.5,color='k', fill=False)
@@ -95,7 +96,7 @@ if jagged-1:
         ptsxj, ptsyj = np.meshgrid(ccoojx,ccoojy)
         ptsxj = ptsxj.flatten()
         ptsyj = ptsyj.flatten()
-        ax2.scatter(ptsxj,ptsyj,c='xkcd:electric blue',s=10)
+        ax2.scatter(ptsxj,ptsyj,c='xkcd:electric blue',s=s)
 
         for x,y in zip(ptsxj,ptsyj):
             p = patches.Rectangle((x-halfdj,y-halfdj),dj,dj,fill=True,alpha=0.2,color='xkcd:azure')
@@ -107,7 +108,7 @@ if jagged-1:
         ptsxj, ptsyj = np.meshgrid(ccoojx,ccoojy)
         ptsxj = ptsxj.flatten()
         ptsyj = ptsyj.flatten()
-        ax2.scatter(ptsxj,ptsyj,c='xkcd:blue grey',s=10)
+        ax2.scatter(ptsxj,ptsyj,c='xkcd:blue grey',s=s)
         
         for x,y in zip(ptsxj,ptsyj):
             p = patches.Rectangle((x-halfdj,y-halfdj),dj,dj,fill=True,alpha=0.2,color='xkcd:blue grey')
@@ -137,11 +138,11 @@ if resolved-1:
     
     rboolin = (rad2 < (0.5*insize)**2)
     ptinx, ptiny = ptsx[rboolin],ptsy[rboolin]
-    ax3.scatter(ptinx,ptiny,c='xkcd:blue grey',s=10)
+    ax3.scatter(ptinx,ptiny,c='xkcd:blue grey',s=s)
 
     rboolout = (rad2 < (0.5*size)**2) * (rad2 > (0.5*insize)**2)
     ptoutx, ptouty = ptsx[rboolout],ptsy[rboolout]
-    ax3.scatter(ptoutx,ptouty,c='xkcd:electric blue',s=10)
+    ax3.scatter(ptoutx,ptouty,c='xkcd:electric blue',s=s)
     
     for x,y in zip(ptinx,ptiny):
         p = patches.Rectangle((x-halfd,y-halfd),d,d,fill=True,alpha=0.2,color='xkcd:blue grey')

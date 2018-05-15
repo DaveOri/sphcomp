@@ -43,3 +43,4 @@ ax1t.tick_params( axis='y',
 ax1.set_xlabel('Frequency    [GHz]')
 ax1.set_ylabel('|m|kd')
 f.savefig('mkd.pdf')
+f.savefig('mkd.png',dpi=300)

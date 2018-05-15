@@ -24,8 +24,8 @@ fr2lam = lambda f: c*1.e-9/f # expected GHz
 #freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
 freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 
-part_size = '10'
-mfrac='0_99'
+part_size = '5'
+mfrac='0_98'
 
 vlin=np.array([50,25,16,12.5])
 
@@ -300,11 +300,11 @@ for freq_str in freqs.keys():#[0:1]:
         x = np.ndarray((Ncomput,Nlayers),dtype=np.float64)
         m = np.ndarray((Ncomput,Nlayers),dtype=np.complex128)
         
-        outer_size = 0.5*0.001*float(part_size)
-        #outer_size=dda_d*np.cbrt((6.0*Ndipoles/np.pi))*0.5 
+        #outer_size = 0.5*0.001*float(part_size)
+        outer_size=dda_d*np.cbrt((6.0*Ndipoles/np.pi))*0.5 
         outer_x = size2x(outer_size,lam_dda)
-        inner_size = outer_size*float(mfrac[2:])*0.01
-        #inner_size=dda_d*np.cbrt((6.0*N2/np.pi))*0.5
+        #inner_size = outer_size*float(mfrac[2:])*0.01
+        inner_size=dda_d*np.cbrt((6.0*N2/np.pi))*0.5
         inner_x = size2x(inner_size,lam_dda)
         print(outer_size,inner_size)
         x[:,0] = inner_x
@@ -484,7 +484,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder)
 plot_relative_difference(DDAdict,MIEdict,quantity='ssa',folder=data_folder)
 
 
-f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(9.5,9.5))
+f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(7,7))
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax1)
 plot_comparison(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax3)
 plot_comparison(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax5)
@@ -499,16 +499,16 @@ ax2.legend(loc=4,ncol=1)
 ax1.set_ylabel('Q$_{sca}$')
 ax2.set_ylabel('$\Delta$Q$_{sca}$/$Q_{sca}^{mie}$     [%]')
 ax3.set_ylabel('Q$_{abs}$')
-ax4.set_ylabel('$\Delta$Q$_{abs}$/$Q_{sca}^{mie}$     [%]')
+ax4.set_ylabel('$\Delta$Q$_{abs}$/$Q_{abs}^{mie}$     [%]')
 ax5.set_ylabel('Q$_{bk}$')
-ax6.set_ylabel('$\Delta$Q$_{bk}$/$Q_{sca}^{mie}$      [%]',labelpad=0)
+ax6.set_ylabel('$\Delta$Q$_{bk}$/$Q_{bk}^{mie}$      [%]',labelpad=0)
 ax7.set_ylabel('g')
 ax8.set_ylabel('$\Delta$ g')
 ax8.set_xlabel('dipole spacing [um]')
 ax7.set_xlabel('dipole spacing [um]')
-f.savefig(data_folder + '/'+'8_panel.png',dpi=300)
-f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300)
-f.suptitle('10mm sphere 50um water test resolution (discretization and shape error)',y=0.999999)
+#f.savefig(data_folder + '/'+'8_panel.png',dpi=300)
+#f.savefig(data_folder + '/'+'8_panel.pdf',dpi=300)
+f.suptitle(part_size+'mm sphere 50um water refine discretization and shape',y=0.999999)
 f.tight_layout()
 f.savefig(data_folder + '/'+'resolution_8panel.png',dpi=300,bbox_inches='tight')
 f.savefig(data_folder + '/'+'resolution_8panel.pdf',dpi=300,bbox_inches='tight')

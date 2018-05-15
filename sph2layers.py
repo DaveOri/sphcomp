@@ -26,7 +26,7 @@ fr2lam = lambda f: c*1.e-9/f # expected GHz
 #freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
 freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 
-part_size = '10'
+part_size = '4'
 if part_size == '20':
     vlin=np.array([0.02,0.04,0.06,0.08])
 elif part_size == '10':
@@ -470,7 +470,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder)
 plot_relative_difference(DDAdict,MIEdict,quantity='ssa',folder=data_folder)
 
 
-f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(9.5,9.5))
+f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(7,7))
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax1)
 plot_comparison(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax3)
 plot_comparison(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax5)

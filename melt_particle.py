@@ -257,7 +257,7 @@ def compute_plot_field_Mie(x,m,folder,plane='X'):
 MIEdict = OrderedDict()
 DDAdict = OrderedDict()
 
-data_folder = '/data/optimice/scattering_databases/melting_sphere/melting_snow/4100/'
+data_folder = '/data/optimice/scattering_databases/melting_sphere/melting_snow/5700/'
 for freq_str in freqs.keys():#[0:1]:
     f = freqs[freq_str]
     lam = fr2lam(f)
@@ -433,7 +433,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder)
 plot_relative_difference(DDAdict,MIEdict,quantity='ssa',folder=data_folder)
 
 
-f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(9.5,9.5))
+f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(7,7))
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax1)
 plot_comparison(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax3)
 plot_comparison(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax5)
@@ -455,7 +455,7 @@ ax7.set_ylabel('g')
 ax8.set_ylabel('$\Delta$ g')
 ax8.set_xlabel('dipole spacing [um]')
 ax7.set_xlabel('dipole spacing [um]')
-f.suptitle('4.1 mm 10% melted aggregate',y=0.9999999)
+f.suptitle('5.7 mm 10% melted aggregate',y=0.9999999)
 f.tight_layout()
 f.savefig(data_folder + '/'+polarization+'8_panel.png',dpi=300,bbox_inches='tight')
 f.savefig(data_folder + '/'+polarization+'8_panel.pdf',dpi=300,bbox_inches='tight')
