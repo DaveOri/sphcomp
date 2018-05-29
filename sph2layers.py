@@ -13,18 +13,19 @@ from scattnlay import fieldnlay
 #sys.path.append('/home/dori/pymiecoated')
 #from pymiecoated import Mie
 
-import matplotlib as mpl
-from cycler import cycler
-mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c', u'#1f77b4',  u'#9467bd'])
-
-from collections import OrderedDict
-
 c = 299792458. # m/s
 size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
+from collections import OrderedDict
 #freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
-freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
+freqs=OrderedDict([('S',2.8),('C',5.6),('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
+
+
+import matplotlib as mpl
+from cycler import cycler
+mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c',u'#75bbfd', u'#1f77b4',  u'#9467bd',u'#ed0dd9'])
+
 
 part_size = '4'
 if part_size == '20':
@@ -263,6 +264,8 @@ for freq_str in freqs.keys():#[0:1]:
     k2 = 4.*(np.pi/lam)**2
     print(f,lam)
     particles_folders = glob(data_folder+'/'+freq_str+'/*')
+    particles_folders = [x for x in particles_folders if '/100' not in x]
+
     DDA = pd.DataFrame(index=range(len(particles_folders)),columns=['Dratio','Qext','Qabs','Qsca','Qbk','g','ssa'] )
     MIE = pd.DataFrame(index=range(len(particles_folders)),columns=['Dratio','Qext','Qabs','Qsca','Qbk','g','ssa'] )
     plt.plot()
@@ -333,8 +336,8 @@ for freq_str in freqs.keys():#[0:1]:
 #            pass
     DDA.sort_values('Dratio',inplace=True)
     MIE.sort_values('Dratio',inplace=True)
-    DDAdict[freq_str] = DDA[0:-1]
-    MIEdict[freq_str] = MIE[0:-1]
+    DDAdict[freq_str] = DDA#[0:-1]
+    MIEdict[freq_str] = MIE#[0:-1]
 #%%
 def plot_comparison(dda_data,mie_data,quantity,folder,ax=None):
     if ax is None:

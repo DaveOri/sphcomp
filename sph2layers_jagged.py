@@ -22,7 +22,8 @@ from scattnlay import fieldnlay
 
 import matplotlib as mpl
 from cycler import cycler
-mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c', u'#1f77b4',  u'#9467bd'])
+#mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c', u'#1f77b4',  u'#9467bd'])
+mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c',u'#75bbfd', u'#1f77b4',  u'#9467bd',u'#ed0dd9'])
 
 from collections import OrderedDict
 
@@ -31,7 +32,8 @@ size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
 #freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
-freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
+#freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
+freqs=OrderedDict([('S',2.8),('C',5.6),('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 part_size = '10'
 
 vlin=np.array([25,16,12.5])
@@ -579,3 +581,45 @@ ax11.legend(loc=3)
 ax12.legend(loc=3)
 f.tight_layout()
 f.savefig(data_folder+'/P11comp.pdf')
+
+#%%
+f, ((ax11,ax12),(ax21,ax22),(ax31,ax32),(ax41,ax42),(ax51,ax52)) = plt.subplots(5,2,sharex=True,figsize=(7,7))
+#f, ((ax11,ax12),(ax21,ax22),(ax31,ax32)) = plt.subplots(3,2,sharex=True,figsize=(9.5,9.5))
+plot_phase3(ax11,Pmie,Pdda,'S','=')
+plot_phase3(ax21,Pmie,Pdda,'C','=')
+plot_phase3(ax31,Pmie,Pdda,'Ka','=')
+ax11.text(0.7,0.7,'S-band',transform=ax11.transAxes,fontdict=dict(fontweight='bold'), bbox=dict(facecolor='white', alpha=0.5))
+ax21.text(0.7,0.7,'C-band',transform=ax21.transAxes,fontdict=dict(fontweight='bold'), bbox=dict(facecolor='white', alpha=0.5))
+ax31.text(0.7,0.7,'Ka-band',transform=ax31.transAxes,fontdict=dict(fontweight='bold'), bbox=dict(facecolor='white', alpha=0.5))
+ax11.set_ylabel('P$_{11}$')
+ax21.set_ylabel('P$_{11}$')
+ax31.set_ylabel('P$_{11}$')
+ax12.set_ylabel('$\Delta$P$_{11}$ [%]')
+ax22.set_ylabel('$\Delta$P$_{11}$ [%]')
+ax32.set_ylabel('$\Delta$P$_{11}$ [%]')
+ax11.set_title('Phase function')
+
+plot_phase3(ax12,Pmie,Pdda,'S','-')
+plot_phase3(ax22,Pmie,Pdda,'C','-')
+plot_phase3(ax32,Pmie,Pdda,'Ka','-')
+
+plot_phase3(ax41,Pmie,Pdda,'W','=')
+plot_phase3(ax51,Pmie,Pdda,'G','=')
+plot_phase3(ax42,Pmie,Pdda,'W','-')
+plot_phase3(ax52,Pmie,Pdda,'G','-')
+ax41.text(0.7,0.7,'W-band',transform=ax41.transAxes,fontdict=dict(fontweight='bold'), bbox=dict(facecolor='white', alpha=0.5))
+ax51.text(0.7,0.7,'G-band',transform=ax51.transAxes,fontdict=dict(fontweight='bold'), bbox=dict(facecolor='white', alpha=0.5))
+ax41.set_ylabel('P$_{11}$')
+ax51.set_ylabel('P$_{11}$')
+ax42.set_ylabel('$\Delta$P$_{11}$ [%]')
+ax52.set_ylabel('$\Delta$P$_{11}$ [%]')
+
+
+ax12.set_title('Error')
+ax51.set_xlabel('Scattering angle [deg]')
+ax52.set_xlabel('Scattering angle [deg]')
+ax11.legend(loc=3)
+ax12.legend(loc=3)
+f.tight_layout()
+f.savefig(data_folder+'/P11SCcomp.pdf')
+
