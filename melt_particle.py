@@ -5,7 +5,7 @@ Created on Tue Feb 27 18:59:22 2018
 @author: dori
 """
 
-polarization='X'
+polarization='Y'
 
 import numpy as np
 import sys
@@ -24,7 +24,8 @@ from scattnlay import fieldnlay
 
 import matplotlib as mpl
 from cycler import cycler
-mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c', u'#1f77b4',  u'#9467bd'])
+#mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c', u'#1f77b4',  u'#9467bd'])
+mpl.rcParams['axes.prop_cycle'] = cycler(u'color', [u'#d62728', u'#ff7f0e', u'#2ca02c',u'#75bbfd', u'#1f77b4',  u'#9467bd',u'#ed0dd9'])
 
 from collections import OrderedDict
 
@@ -33,7 +34,9 @@ size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
 
 #freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
-freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
+#freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
+freqs=OrderedDict([('S',2.8),('C',5.6),('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
+
 #part_size = '10'
 
 def get_line(lines,string):

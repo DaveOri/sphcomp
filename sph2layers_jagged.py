@@ -622,4 +622,4 @@ ax11.legend(loc=3)
 ax12.legend(loc=3)
 f.tight_layout()
 f.savefig(data_folder+'/P11SCcomp.pdf')
-
+f.savefig(data_folder+'/P11SCcomp.png')

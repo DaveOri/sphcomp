@@ -24,7 +24,7 @@ fr2lam = lambda f: c*1.e-9/f # expected GHz
 
 from collections import OrderedDict
 #freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
-polints=['cm_poi','fcd_fcd','fcd_igt1','fcd_igt3','ldr_poi']
+polints=['cm_poi','fcd_fcd','fcd_igt1','fcd_igt3','ldr_poi','igt_so_igt_so','cldr_igt_so']
 freqs=OrderedDict([('S',2.8),('C',5.6),('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 
 
@@ -60,8 +60,10 @@ def get_log_numbers(logfilename):
     dda_d = lam_dda/dpl
     n1 = complex(get_line(lines,'refractive index: 1.').split()[-1].replace('i','j'))
     n2 = complex(get_line(lines,'                  2.').split()[-1].replace('i','j'))
+    Niter = int(get_line(lines,'Total number of iterations:').split()[-1])
+    walltime = float(get_line(lines,'Total wall time:').split()[-1])
     logfile.close()
-    return lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2
+    return lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2,Niter,walltime
 
 def get_cross_sections(CrossSecFileName):
     CrossSecfile = open(CrossSecFileName,'r')
@@ -270,7 +272,7 @@ for polint in polints:#.keys():#[0:1]:
     print(f,lam)
     particles_folders = glob(data_folder+polint+'/'+part_size+'mm/9.6/*')
 
-    DDA = pd.DataFrame(index=range(len(particles_folders)),columns=['Dratio','Qext','Qabs','Qsca','Qbk','g','ssa'] )
+    DDA = pd.DataFrame(index=range(len(particles_folders)),columns=['Dratio','Qext','Qabs','Qsca','Qbk','g','ssa','Niter','walltime'] )
     MIE = pd.DataFrame(index=range(len(particles_folders)),columns=['Dratio','Qext','Qabs','Qsca','Qbk','g','ssa'] )
     plt.plot()
     ax = plt.gca()
@@ -282,8 +284,8 @@ for polint in polints:#.keys():#[0:1]:
         mueller = pd.read_csv(particle_folder+'/mueller',sep=' ',index_col='theta')
 
         logfilename = particle_folder+'/log'
-        lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2 = get_log_numbers(logfilename)
-        print(lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2)
+        lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2, Niter, walltime = get_log_numbers(logfilename)
+        print(lam_dda, dpl, Ndipoles,N1,N2,dda_d,n1,n2,Niter,walltime)
 
         CrossSecFileName = particle_folder+'/CrossSec-Y'
         Cext, Qext, Csca, Qsca, Cabs, Qabs, area = get_cross_sections(CrossSecFileName)
@@ -310,7 +312,7 @@ for polint in polints:#.keys():#[0:1]:
         print(m)
         thetas = deg2rad(mueller.index.values)
         g = moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,1)/moment(np.cos(deg2rad(mueller.index.values)),mueller.s11.values,0)
-        DDA.loc[i] = inner_size/outer_size, Qext, Qabs, Qsca, Qbck, g, Qsca/Qext
+        DDA.loc[i] = inner_size/outer_size, Qext, Qabs, Qsca, Qbck, g, Qsca/Qext, Niter, walltime
         
         terms, MQe, MQs, MQa, MQb, MQp, Mg, Mssa, S1, S2 = scattnlay(x,m,theta=thetas)
         MIE.loc[i] = inner_size/outer_size, MQe[0], MQa[0], MQs[0], MQb[0], Mg[0], Mssa[0]
@@ -476,29 +478,103 @@ plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder)
 plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder)
 plot_relative_difference(DDAdict,MIEdict,quantity='ssa',folder=data_folder)
 
+#%%
 
-f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(7,7))
-plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax1)
-plot_comparison(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax3)
-plot_comparison(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax5)
-plot_comparison(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax7)
+def reldiff(D1,D2,label,quantity):
+    return 100.*(D1[label][quantity]-D2[label][quantity])/D1[label][quantity]
+def diff(D1,D2,label,quantity):
+    return (D1[label][quantity]-D2[label][quantity])
 
-plot_relative_difference(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax2)
-plot_relative_difference(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=ax4)
-plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax6)
-plot_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
+
+DFmie=MIEdict['fcd_fcd']
+lay_thick = 0.5*Dout*(1 - DFmie['Dratio'])
+f,((ax1,ax2),(ax3,ax4),(ax5,ax6)) = plt.subplots(3,2,sharex=True,figsize=(7,7))
+label='fcd_fcd'
+ax1.plot(lay_thick,DDAdict[label]['walltime'],label=label)
+ax2.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qsca'),label=label)
+ax3.plot(lay_thick,DDAdict[label]['Niter'],label=label)
+ax4.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qabs'),label=label)
+ax5.plot(lay_thick,diff(MIEdict,DDAdict,label,'g'),label=label)
+ax6.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qbk'),label=label)
+
+label='cm_poi'
+ax1.plot(lay_thick,DDAdict[label]['walltime'],'3',label=label)
+ax2.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qsca'),'3',label=label)
+ax3.plot(lay_thick,DDAdict[label]['Niter'],'3',label=label)
+ax4.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qabs'),'3',label=label)
+ax5.plot(lay_thick,diff(MIEdict,DDAdict,label,'g'),'3',label=label)
+ax6.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qbk'),'3',label=label)
+
+label='ldr_poi'
+ax1.plot(lay_thick,DDAdict[label]['walltime'],label=label)
+ax2.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qsca'),label=label)
+ax3.plot(lay_thick,DDAdict[label]['Niter'],label=label)
+ax4.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qabs'),label=label)
+ax5.plot(lay_thick,diff(MIEdict,DDAdict,label,'g'),label=label)
+ax6.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qbk'),label=label)
+
+label='cldr_igt_so'
+ax1.plot(lay_thick,DDAdict[label]['walltime'],label=label)
+ax2.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qsca'),label=label)
+ax3.plot(lay_thick,DDAdict[label]['Niter'],label=label)
+ax4.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qabs'),label=label)
+ax5.plot(lay_thick,diff(MIEdict,DDAdict,label,'g'),label=label)
+ax6.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qbk'),label=label)
+
+label='fcd_igt1'
+ax1.plot(lay_thick,DDAdict[label]['walltime'],label=label)
+ax2.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qsca'),label=label)
+ax3.plot(lay_thick,DDAdict[label]['Niter'],label=label)
+ax4.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qabs'),label=label)
+ax5.plot(lay_thick,diff(MIEdict,DDAdict,label,'g'),label=label)
+ax6.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qbk'),label=label)
+
+label='fcd_igt3'
+ax1.plot(lay_thick,DDAdict[label]['walltime'],'.',label=label,markerfacecolor='none')
+ax2.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qsca'),'.',label=label,markerfacecolor='none')
+ax3.plot(lay_thick,DDAdict[label]['Niter'],'.',label=label,markerfacecolor='none')
+ax4.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qabs'),'.',label=label,markerfacecolor='none')
+ax5.plot(lay_thick,diff(MIEdict,DDAdict,label,'g'),'.',label=label,markerfacecolor='none')
+ax6.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qbk'),'.',label=label,markerfacecolor='none')
+
+label='igt_so_igt_so'
+ax1.plot(lay_thick,DDAdict[label]['walltime'],'2',label=label)
+ax2.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qsca'),'2',label=label)
+ax3.plot(lay_thick,DDAdict[label]['Niter'],'2',label=label)
+ax4.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qabs'),'2',label=label)
+ax5.plot(lay_thick,diff(MIEdict,DDAdict,label,'g'),'2',label=label)
+ax6.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qbk'),'2',label=label)
+
+#ax1.set_yscale('log')
+ax2.set_yscale('log')
+#ax3.set_yscale('log')
+
+ax4.set_yscale('log')
+ax6.set_yscale('log')
+
+#ax2.set_ylim(1,100)
+#ax4.set_ylim(1,100)
+#ax6.set_ylim(1,100)
+
+ax1.grid()
+ax2.grid()
+ax3.grid()
+ax4.grid()
+ax5.grid()
+ax6.grid()
+
 
 ax2.legend(loc=1,ncol=1)
-ax1.set_ylabel('Q$_{sca}$')
+ax1.set_ylabel('walltime   [s]')
 ax2.set_ylabel('$\Delta$Q$_{sca}$/$Q_{sca}^{mie}$     [%]')
-ax3.set_ylabel('Q$_{abs}$')
+ax3.set_ylabel('N iterations')
 ax4.set_ylabel('$\Delta$Q$_{abs}$/$Q_{abs}^{mie}$     [%]')
-ax5.set_ylabel('Q$_{bk}$')
+#ax5.set_ylabel('Q$_{bk}$')
 ax6.set_ylabel('$\Delta$Q$_{bk}$/$Q_{bk}^{mie}$     [%]')
-ax7.set_ylabel('g')
-ax8.set_ylabel('$\Delta$ g')
-ax8.set_xlabel('Water layer thickness [mm]')
-ax7.set_xlabel('Water layer thickness [mm]')
+#ax5.set_ylabel('g')
+ax5.set_ylabel('$\Delta$ g')
+ax5.set_xlabel('Water layer thickness [mm]')
+ax6.set_xlabel('Water layer thickness [mm]')
 f.suptitle(part_size+'mm sphere variable water layer thickness',y=0.99999)
 f.tight_layout(w_pad=0.1,h_pad=0.2)
 f.savefig(data_folder + '/'+'8_panel.png',dpi=300,bbox_inches='tight')
