@@ -488,7 +488,7 @@ def diff(D1,D2,label,quantity):
 
 DFmie=MIEdict['fcd_fcd']
 lay_thick = 0.5*Dout*(1 - DFmie['Dratio'])
-f,((ax1,ax2),(ax3,ax4),(ax5,ax6)) = plt.subplots(3,2,sharex=True,figsize=(7,7))
+f,((ax1,ax3),(ax2,ax4),(ax6,ax5)) = plt.subplots(3,2,sharex=True,figsize=(7,7))
 label='fcd_fcd'
 ax1.plot(lay_thick,DDAdict[label]['walltime'],label=label)
 ax2.plot(lay_thick,reldiff(MIEdict,DDAdict,label,'Qsca'),label=label)

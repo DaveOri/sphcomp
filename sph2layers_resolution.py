@@ -26,8 +26,8 @@ fr2lam = lambda f: c*1.e-9/f # expected GHz
 #freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 freqs=OrderedDict([('S',2.8),('C',5.6),('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 
-part_size = '10'
-mfrac='0_99'
+part_size = '5'
+mfrac='0_98'
 
 vlin=np.array([50,25,16,12.5])
 

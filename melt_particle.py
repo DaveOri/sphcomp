@@ -6,7 +6,9 @@ Created on Tue Feb 27 18:59:22 2018
 """
 
 polarization='Y'
-
+strsize='5700'
+sizedot=strsize[0]+'.'+strsize[1]
+size_=strsize[0]+'_'+strsize[1]
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
@@ -32,12 +34,7 @@ from collections import OrderedDict
 c = 299792458. # m/s
 size2x = lambda s,l: 2.*np.pi*s/l
 fr2lam = lambda f: c*1.e-9/f # expected GHz
-
-#freqs={'X':9.6,'Ku':13.6,'Ka':35.6,'W':94,'G':220}
-#freqs=OrderedDict([('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
 freqs=OrderedDict([('S',2.8),('C',5.6),('X',9.6),('Ku',13.6),('Ka',35.6),('W',94),('G',220)])
-
-#part_size = '10'
 
 def get_line(lines,string):
     return [x for x in lines if string in x][0]
@@ -260,7 +257,7 @@ def compute_plot_field_Mie(x,m,folder,plane='X'):
 MIEdict = OrderedDict()
 DDAdict = OrderedDict()
 
-data_folder = '/data/optimice/scattering_databases/melting_sphere/melting_snow/5700/'
+data_folder = '/data/optimice/scattering_databases/melting_sphere/melting_snow/'+strsize+'/'
 for freq_str in freqs.keys():#[0:1]:
     f = freqs[freq_str]
     lam = fr2lam(f)
@@ -286,7 +283,10 @@ for freq_str in freqs.keys():#[0:1]:
         Cext, Qext, Csca, Qsca, Cabs, Qabs, area = get_cross_sections(CrossSecFileName)
 
         back = mueller.loc[180]
-        Cbck = 2.0*np.pi*(back.s11+back.s22+2.0*back.s12)/k2
+        polsign = 1.0
+        if (polarization == 'X'):
+            polsign = -1.0
+        Cbck = 2.0*np.pi*(back.s11+back.s22+polsign*2.0*back.s12)/k2
         Qbck = Cbck/area
         volume_ratio = float(N1)/float(Ndipoles)
 
@@ -435,6 +435,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder)
 plot_relative_difference(DDAdict,MIEdict,quantity='g',folder=data_folder)
 plot_relative_difference(DDAdict,MIEdict,quantity='ssa',folder=data_folder)
 
+#%%
 
 f,((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8)) = plt.subplots(4,2,sharex=True,figsize=(7,7))
 plot_comparison(DDAdict,MIEdict,quantity='Qsca',folder=data_folder,ax=ax1)
@@ -447,7 +448,7 @@ plot_relative_difference(DDAdict,MIEdict,quantity='Qabs',folder=data_folder,ax=a
 plot_relative_difference(DDAdict,MIEdict,quantity='Qbk',folder=data_folder,ax=ax6)
 plot_difference(DDAdict,MIEdict,quantity='g',folder=data_folder,ax=ax8)
 
-ax2.legend(ncol=1)
+ax2.legend(ncol=1,loc=4)
 ax1.set_ylabel('Q$_{sca}$')
 ax2.set_ylabel('$\Delta$Q$_{sca}$/$Q_{sca}^{20\mu m}$     [%]')
 ax3.set_ylabel('Q$_{abs}$')
@@ -456,9 +457,9 @@ ax5.set_ylabel('Q$_{bk}$')
 ax6.set_ylabel('$\Delta$Q$_{bk}$/$Q_{bk}^{20\mu m}$      [%]')
 ax7.set_ylabel('g')
 ax8.set_ylabel('$\Delta$ g')
-ax8.set_xlabel('dipole spacing [um]')
-ax7.set_xlabel('dipole spacing [um]')
-f.suptitle('5.7 mm 10% melted aggregate',y=0.9999999)
+ax8.set_xlabel('dipole spacing [$\mu$m]')
+ax7.set_xlabel('dipole spacing [$\mu$m]')
+f.suptitle(sizedot+' mm - 10% melted snowflake - '+polarization+' polarization',y=0.9999999)
 f.tight_layout()
-f.savefig(data_folder + '/'+polarization+'8_panel.png',dpi=300,bbox_inches='tight')
-f.savefig(data_folder + '/'+polarization+'8_panel.pdf',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+size_+'mm_'+polarization+'8_panel.png',dpi=300,bbox_inches='tight')
+f.savefig(data_folder + '/'+size_+'mm_'+polarization+'8_panel.pdf',dpi=300,bbox_inches='tight')
